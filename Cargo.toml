@@ -3,6 +3,9 @@ name = "tfhela"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+doctest = false
+
 [dependencies]
 serde = "1.0.203"
 serde_json = "1.0.120"
