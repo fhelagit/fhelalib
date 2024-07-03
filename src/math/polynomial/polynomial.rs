@@ -60,7 +60,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
         let mut sums = Box::new([0; ORDER]);
 
         for i in 0..ORDER {
-            sums[i] = &(self.coeffs()[i]) + &(rhs.coeffs()[i]);
+            sums[i] = (self.coeffs()[i]).wrapping_add(rhs.coeffs()[i]);
         }
         Polynomial::new(sums)
     }
@@ -70,7 +70,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 fn test_add_polynomial() {
     // todo make iterative, make random
     const ORDER: usize = 10;
-    let a: [u64; ORDER] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+    let a: [u64; ORDER] = [u64::MAX, 2, 3, 4, 5, 6, 7, 8, 9, 0];
     let b: [u64; ORDER] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
     let sum: [u64; ORDER] = a
         .iter()
