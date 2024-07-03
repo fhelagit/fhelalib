@@ -3,3 +3,4 @@
 use tfhe::GLWECiphertext;
 
 pub mod tfhe;
+pub mod math;
