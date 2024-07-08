@@ -286,14 +286,14 @@ fn polymul_nwc<const ORDER:usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>) 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_nwc_naive_comparation(a_ in any::<[u16; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))
-                                      , b_ in any::<[u16; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))) {
+    fn pt_polymul_nwc_naive_comparation(a_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))
+                                      , b_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))) {
         let a = a_.clone();
         let b = b_.clone();
 
         let c_nnt = polymul_nwc(&a, &b);
         let c_naive = polymul_nwc_naive(&a, &b);
-        prop_assert_eq!(poly_approximately_equial::<pwc_n>(&c_nnt, &c_naive, 1000), true)
+        prop_assert_eq!(poly_approximately_equial::<nwc_n>(&c_nnt, &c_naive, 1000), true)
 
     }
 }
