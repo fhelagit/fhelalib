@@ -118,6 +118,19 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     }
 }
 
+impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
+    type Output = Polynomial<ORDER>;
+
+    fn sub(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+        let mut sums = Box::new([0; ORDER]);
+
+        for i in 0..ORDER {
+            sums[i] = self.coeffs()[i].wrapping_sub(rhs.coeffs()[i]);
+        }
+        Polynomial::new(sums)
+    }
+}
+
 #[cfg(test)]
 #[test]
 fn test_add_polynomial() {
@@ -179,6 +192,43 @@ proptest! {
     fn pt_add_polynomial_commutative_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
         assert_eq!(&poly_a + &poly_b, &poly_b + &poly_a);
     }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_sub_polynomial_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
+        const ORDER: usize = 1000;
+        let a: [u64; ORDER] = *poly_a.coeffs();
+        let b: [u64; ORDER] = *poly_b.coeffs();
+        let sum: [u64; ORDER] = a
+            .iter()
+            .zip(b.iter())
+            .map(|(ai, bi)| ai.wrapping_sub(*bi))
+            .collect::<Vec<u64>>()
+            .try_into()
+            .unwrap();
+        let poly_sum = &poly_a - &poly_b;
+        assert_eq!(sum, *poly_sum.coeffs());
+    }
+
+    #[test]
+    fn pt_sub_polynomial_1(poly_a in any::<Polynomial::<1>>(), poly_b in any::<Polynomial::<1>>()) {
+        const ORDER: usize = 1;
+        let a: [u64; ORDER] = *poly_a.coeffs();
+        let b: [u64; ORDER] = *poly_b.coeffs();
+        let sum: [u64; ORDER] = a
+            .iter()
+            .zip(b.iter())
+            .map(|(ai, bi)| ai.wrapping_sub(*bi))
+            .collect::<Vec<u64>>()
+            .try_into()
+            .unwrap();
+        let poly_sum = &poly_a - &poly_b;
+        assert_eq!(sum, *poly_sum.coeffs());
+    }
+
 }
 
 fn poly_approximately_equial<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>, delta: u64) -> bool {
