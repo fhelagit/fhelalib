@@ -231,6 +231,16 @@ proptest! {
 
 }
 
+impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
+    type Output = Polynomial<ORDER>;
+
+    fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+        polymul_pwc_naive(self, rhs)
+    }
+}
+
+
+
 fn poly_approximately_equial<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>, delta: u64) -> bool {
     let mut res = true;
     for i in 0..ORDER {
