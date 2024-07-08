@@ -25,6 +25,12 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial(data)
     }
 
+    fn new_monomial(value: u64, position: usize) -> Self {
+        let mut d = [0; ORDER];
+        d[position] = value;
+        Polynomial(Box::new(d))
+    }
+
     fn coeffs(&self) -> Box<[u64; ORDER]> {
         self.0.clone()
     }
