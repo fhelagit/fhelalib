@@ -2,9 +2,14 @@ use std::fmt::{self, Display};
 use std::str::FromStr;
 extern crate serde_json;
 
+#[cfg(test)]
+use proptest::prelude::*;
+#[cfg(test)]
+use proptest_derive::Arbitrary;
+
 use Vec;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct GLWECiphertext<const Polynomialsize: usize, const Masksize: usize>(
     Box<[u64; Polynomialsize * (Masksize + 1)]>,
 )
@@ -68,3 +73,18 @@ fn test_glwe_to_str_serialization() {
     let deserialized: GLWECiphertext<5, 1> = FromStr::from_str(&serialized).unwrap();
     assert_eq!(ct.0, deserialized.0);
 }
+
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_glwe_ct_str_serialization(ct in any::<[u64; 3*1024]>().prop_map(|v| GLWECiphertext::<1024,2>::from_polynomial_list(Box::new(v)))) {
+
+        let serialized = ct.to_string();
+        let deserialized: GLWECiphertext<1024, 2> = FromStr::from_str(&serialized).unwrap();
+        prop_assert_eq!(ct, deserialized);
+
+    }
+}
+

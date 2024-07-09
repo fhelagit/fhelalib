@@ -1,3 +1,2 @@
-pub mod GLWE;
-pub use GLWE::GLWECiphertext;
+pub mod glwe;
 use crate::random;
