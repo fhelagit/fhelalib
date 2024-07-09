@@ -1,5 +1,6 @@
 use rand::Rng;
 use rand_distr::{Normal, Distribution};
+use round::round;
 
 pub fn rnd_u64_uniform() -> u64 {
   let mut rng = rand::thread_rng();
