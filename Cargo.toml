@@ -8,6 +8,8 @@ doctest = false
 
 [dependencies]
 num = "0.4.3"
+rand = "0.8.5"
+rand_distr = "0.4.3"
 round = "0.1.2"
 serde = "1.0.203"
 serde_json = "1.0.120"
