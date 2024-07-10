@@ -1,7 +1,9 @@
-use crate::tfhe::{GLEV_B, GLWE_Q};
+#![allow(non_camel_case_types)]
+
 use crate::{
-    math::polynomial::polynomial::Polynomial, random::random::rnd_u64_uniform_binary,
-    tfhe::glwe::GLWECiphertext,
+    // math::polynomial::polynomial::Polynomial, 
+    random::random::rnd_u64_uniform_binary,
+    // tfhe::glwe::GLWECiphertext,
 };
 
 pub struct GLWE_secret_key<const Polynomialsize: usize, const Masksize: usize>(

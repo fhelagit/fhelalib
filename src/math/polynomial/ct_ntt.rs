@@ -1,9 +1,10 @@
+#[allow(non_camel_case_types)]
 type ntt_data_size = u64;
-use crate::{math::modular::mod_arith::*, math::modular::module_switch::*};
+use crate::{math::modular::mod_arith::*};
 #[cfg(test)]
 use proptest::prelude::*;
 #[cfg(test)]
-use proptest_derive::Arbitrary;
+// use proptest_derive::Arbitrary;
 
 #[cfg(test)]
 proptest! {
@@ -18,9 +19,9 @@ proptest! {
         let mut regular_form = regular_form_.clone();
         let mut nnt_form = [0; n].to_vec();
 
-        CT_ntt(&mut regular_form, n,  q, w, &mut nnt_form).unwrap();
+        ct_ntt(&mut regular_form, n,  q, w, &mut nnt_form).unwrap();
         println!("1. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
-        CT_intt(&mut nnt_form, n,  q, w_inv, n_inv, &mut regular_form).unwrap();
+        ct_intt(&mut nnt_form, n,  q, w_inv, n_inv, &mut regular_form).unwrap();
         println!("2. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
         prop_assert_eq!(regular_form_, regular_form)
 
@@ -40,7 +41,7 @@ fn test_ntt_ones() {
     let mut expected_ntt_form = [0; n].to_vec();
     expected_ntt_form[0] = n as u64;
 
-    CT_ntt(&mut regular_form, n, q, w, &mut ntt_form).unwrap();
+    ct_ntt(&mut regular_form, n, q, w, &mut ntt_form).unwrap();
     assert_eq!(ntt_form, expected_ntt_form)
 }
 
@@ -53,9 +54,9 @@ fn test_intt_ones() {
     let mut regular_form = [0; n].to_vec();
     let mut ntt_form = [0; n].to_vec();
     ntt_form[0] = n as u64;
-    let mut expected_regular_form = [1; n].to_vec();
+    let expected_regular_form = [1; n].to_vec();
 
-    CT_intt(&mut ntt_form, n, q, w_inv, n_inv, &mut regular_form).unwrap();
+    ct_intt(&mut ntt_form, n, q, w_inv, n_inv, &mut regular_form).unwrap();
     assert_eq!(regular_form, expected_regular_form)
 }
 
@@ -88,9 +89,9 @@ proptest! {
         let mut regular_form = regular_form_.clone();
         let mut nnt_form = [0; n].to_vec();
 
-        CT_ntt(&mut regular_form, n,  q, w, &mut nnt_form).unwrap();
+        ct_ntt(&mut regular_form, n,  q, w, &mut nnt_form).unwrap();
         println!("1. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
-        CT_intt(&mut nnt_form, n,  q, w_inv, n_inv, &mut regular_form).unwrap();
+        ct_intt(&mut nnt_form, n,  q, w_inv, n_inv, &mut regular_form).unwrap();
         println!("2. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
         prop_assert_eq!(regular_form_, regular_form)
 
@@ -109,7 +110,7 @@ fn test_nc_ntt_ones() {
     let mut expected_ntt_form = [0; n].to_vec();
     expected_ntt_form[0] = n as u64;
 
-    CT_ntt(&mut regular_form, n, q, w, &mut ntt_form).unwrap();
+    ct_ntt(&mut regular_form, n, q, w, &mut ntt_form).unwrap();
     assert_eq!(ntt_form, expected_ntt_form)
 }
 
@@ -122,9 +123,9 @@ fn test_nc_intt_ones() {
     let mut regular_form = [0; n].to_vec();
     let mut ntt_form = [0; n].to_vec();
     ntt_form[0] = n as u64;
-    let mut expected_regular_form = [1; n].to_vec();
+    let expected_regular_form = [1; n].to_vec();
 
-    CT_intt(&mut ntt_form, n, q, w_inv, n_inv, &mut regular_form).unwrap();
+    ct_intt(&mut ntt_form, n, q, w_inv, n_inv, &mut regular_form).unwrap();
     assert_eq!(regular_form, expected_regular_form)
 }
 // todo
@@ -159,14 +160,14 @@ pub fn egcd(a: u64, b: u64) -> (u64, u64, u64) {
 }
 
 pub fn modinv(a: u64, q: u64) -> Result<u64, String> {
-    let (g, x, y) = egcd(a, q);
+    let (g, x, _) = egcd(a, q);
     match g {
         1 => Err("Modular inverse does not exist".to_string()),
-        g => Ok(x % q),
+        _ => Ok(x % q),
     }
 }
 
-pub fn CT_intt(
+pub fn ct_intt(
     ntt_form: &mut Vec<ntt_data_size>,
     n: usize,
     q: ntt_data_size,
@@ -174,7 +175,7 @@ pub fn CT_intt(
     n_inv: ntt_data_size,
     regular_form: &mut Vec<ntt_data_size>,
 ) -> Result<(), ()> {
-    CT_ntt(ntt_form, n, q, w_inv, regular_form).unwrap();
+    ct_ntt(ntt_form, n, q, w_inv, regular_form).unwrap();
     for x in regular_form.iter_mut() {
         let r: u128 = (*x as u128 * n_inv as u128) % q as u128;
         *x = r as u64;
@@ -183,7 +184,7 @@ pub fn CT_intt(
     Ok(())
 }
 
-pub fn CT_ntt(
+pub fn ct_ntt(
     regular_form: &mut Vec<ntt_data_size>,
     n: usize,
     q: ntt_data_size,
@@ -205,45 +206,45 @@ pub fn CT_ntt(
     //		xil_printf("B[1]: %u\n", result[1]);
     } else {
         //		xil_printf("CT_ntt 2\n");
-        let N_2 = n / 2;
-        let mut B: Vec<ntt_data_size> = Vec::new();
+        let n_2 = n / 2;
+        let mut b: Vec<ntt_data_size> = Vec::new();
         let mut w_cur = 1;
 
-        for i in 0..n {
-            B.push(0);
+        for _ in 0..n {
+            b.push(0);
         }
 
-        let mut A_even: Vec<ntt_data_size> = Vec::new();
-        let mut A_odd: Vec<ntt_data_size> = Vec::new();
-        let mut B_even: Vec<ntt_data_size> = Vec::new();
-        let mut B_odd: Vec<ntt_data_size> = Vec::new();
+        let mut a_even: Vec<ntt_data_size> = Vec::new();
+        let mut a_odd: Vec<ntt_data_size> = Vec::new();
+        let mut b_even: Vec<ntt_data_size> = Vec::new();
+        let mut b_odd: Vec<ntt_data_size> = Vec::new();
 
-        for i in 0..N_2 {
-            A_even.push(0);
-            A_odd.push(0);
-            B_even.push(0);
-            B_odd.push(0);
+        for _ in 0..n_2 {
+            a_even.push(0);
+            a_odd.push(0);
+            b_even.push(0);
+            b_odd.push(0);
         }
 
-        for i in 0..N_2 {
+        for i in 0..n_2 {
             //		xil_printf("CT_ntt 21\n");
-            A_even[i] = regular_form[2 * i];
-            A_odd[i] = regular_form[2 * i + 1];
+            a_even[i] = regular_form[2 * i];
+            a_odd[i] = regular_form[2 * i + 1];
         }
 
         let w_2: ntt_data_size = mod_mul(w, w, q);
 
-        CT_ntt(&mut A_even, N_2, q, w_2, &mut B_even);
-        CT_ntt(&mut A_odd, N_2, q, w_2, &mut B_odd);
+        ct_ntt(&mut a_even, n_2, q, w_2, &mut b_even)?;
+        ct_ntt(&mut a_odd, n_2, q, w_2, &mut b_odd)?;
         //		xil_printf("CT_ntt 221\n");
 
-        for i in 0..N_2 {
+        for i in 0..n_2 {
             //			xil_printf("CT_ntt 222: %u\n", i);
-            let mut b_i_mul_w: ntt_data_size = mod_mul(w_cur, B_odd[i], q);
+            let b_i_mul_w: ntt_data_size = mod_mul(w_cur, b_odd[i], q);
             //			xil_printf("CT_ntt 223\n");
-            B[i] = mod_sum(B_even[i], b_i_mul_w, q);
+            b[i] = mod_sum(b_even[i], b_i_mul_w, q);
             //			xil_printf("CT_ntt 224\n");
-            B[i + N_2] = mod_sub(B_even[i], b_i_mul_w, q);
+            b[i + n_2] = mod_sub(b_even[i], b_i_mul_w, q);
             //			xil_printf("CT_ntt 225\n");
             w_cur = mod_mul(w_cur, w, q);
             //			xil_printf("CT_ntt 226\n");
@@ -252,7 +253,7 @@ pub fn CT_ntt(
 
         for i in 0..n {
             //	xil_printf("CT_ntt 23\n");
-            ntt_form[i] = B[i];
+            ntt_form[i] = b[i];
         }
         Ok(())
         //		xil_printf("CT_ntt 228\n");

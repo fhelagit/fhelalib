@@ -1,11 +1,5 @@
-use std::cmp::min;
-
-use num::Integer;
 #[cfg(test)]
 use proptest::prelude::*;
-#[cfg(test)]
-use proptest_derive::Arbitrary;
-use round::round_down;
 
 pub fn rounded_div(dividend: u64, divisor: u64) -> u64 {
     // if dividend ^ divisor >= 0 {
@@ -28,7 +22,7 @@ proptest! {
   #![proptest_config(ProptestConfig::with_cases(10000))]
   #[test]
   fn round_div_test(a in 1000..10000u64, b in any::<u64>().prop_filter("Not zero", |v| *v > 100000000000)){
-    rounded_div(100000000001, 1000);
+    rounded_div(a, b);
   }
 }
 

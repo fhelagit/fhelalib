@@ -10,7 +10,6 @@ use proptest::prelude::*;
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 
-use crate::math::modular::mod_arith::*;
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
@@ -22,7 +21,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
     fn new(data: Box<[u64; ORDER]>) -> Self {
         Polynomial(data)
     }
-
+    #[allow(dead_code)]
     fn new_monomial(value: u64, position: usize) -> Self {
         let mut d = [0; ORDER];
         d[position] = value;
@@ -332,8 +331,8 @@ fn polymul_nwc<const ORDER: usize>(
 
     let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
-    CT_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
-    CT_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
+    ct_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
+    ct_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
 
     let mut c_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut c_regular_form: Vec<u64> = [0; n].to_vec();
@@ -343,7 +342,7 @@ fn polymul_nwc<const ORDER: usize>(
         c_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
     }
 
-    CT_intt(&mut c_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
+    ct_intt(&mut c_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
 
     for i in 0..n {
         c_[i] = (((c_regular_form[i] as u128 * pow(psi_inv, i as u32, q) as u128) % q as u128)
@@ -446,19 +445,18 @@ proptest! {
     fn pt_polymul_nwc_distributive(   a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
                                     , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
                                     , c_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
-        const n: usize = nwc_n;
-        let q: u64       = 18446744073709547521;
+        // let q: u64       = 18446744073709547521;
         let a = a_.clone();
         let b = b_.clone();
         let c = c_.clone();
 
 
-        let mut a_plus_b = &a + &b;// = polymul(&a, &b);
+        let a_plus_b = &a + &b;// = polymul(&a, &b);
         let a_plus_b_mul_c = polymul_nwc(&a_plus_b, &c); //:Vec<u64> = [0; n].to_vec();
 
         let a_mul_c = polymul_nwc(&a, &c);
         let b_mul_c = polymul_nwc(&b, &c);
-        let mut a_mul_c_plus_b_mul_c = &a_mul_c + &b_mul_c;
+        let a_mul_c_plus_b_mul_c = &a_mul_c + &b_mul_c;
 
 
         prop_assert_eq!(a_plus_b_mul_c, a_mul_c_plus_b_mul_c)
@@ -502,8 +500,8 @@ fn polymul_pwc<const ORDER: usize>(
 
     let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
-    CT_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
-    CT_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
+    ct_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
+    ct_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
 
     let mut c_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut c_regular_form: Vec<u64> = [0; n].to_vec();
@@ -512,7 +510,7 @@ fn polymul_pwc<const ORDER: usize>(
         c_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
     }
 
-    CT_intt(&mut c_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
+    ct_intt(&mut c_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
 
     // mod switch back
 
@@ -639,19 +637,19 @@ proptest! {
         , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
         , c_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
         // кажется здесь нужно более изощренная проверка по примерное равенство
-        const n: usize = pwc_n;
+
         let a = a_.clone();
         let b = b_.clone();
         let c = c_.clone();
 
 
-        let mut a_plus_b:Polynomial<pwc_n> = &a + &b;// = polymul(&a, &b);
+        let a_plus_b:Polynomial<pwc_n> = &a + &b;// = polymul(&a, &b);
 
         let a_plus_b_mul_c = polymul_pwc(&a_plus_b, &c); //:Vec<u64> = [0; n].to_vec();
 
         let a_mul_c = polymul_pwc(&a, &c);
         let b_mul_c = polymul_pwc(&b, &c);
-        let mut a_mul_c_plus_b_mul_c = &a_mul_c + &b_mul_c;
+        let a_mul_c_plus_b_mul_c = &a_mul_c + &b_mul_c;
 
 
         prop_assert_eq!(poly_approximately_equial::<pwc_n>(&a_plus_b_mul_c, &a_mul_c_plus_b_mul_c, 1000000000), true)
