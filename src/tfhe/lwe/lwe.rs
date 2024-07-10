@@ -60,7 +60,7 @@ fn test_lwe_to_str_serialization() {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_glwe_ct_str_serialization(ct in any::<[u64; 587]>().prop_map(|v| LWECiphertext::<TFHE_test_medium_u64>::from_polynomial_list(v.to_vec()))) {
+    fn pt_lwe_ct_str_serialization(ct in any::<[u64; 587]>().prop_map(|v| LWECiphertext::<TFHE_test_medium_u64>::from_polynomial_list(v.to_vec()))) {
 
         let serialized = ct.to_string();
         let deserialized: LWECiphertext<TFHE_test_medium_u64> = FromStr::from_str(&serialized).unwrap();
