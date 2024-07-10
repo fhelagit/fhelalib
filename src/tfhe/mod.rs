@@ -1,5 +1,7 @@
 pub mod glwe;
+pub mod lwe;
 use crate::random;
+pub mod schemas;
 pub mod secret_key;
 
 pub const GLWE_K: usize = 4;

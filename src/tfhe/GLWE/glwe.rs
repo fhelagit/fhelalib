@@ -74,7 +74,6 @@ fn test_glwe_to_str_serialization() {
     assert_eq!(ct.0, deserialized.0);
 }
 
-
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
@@ -87,7 +86,3 @@ proptest! {
 
     }
 }
-
-
-
-

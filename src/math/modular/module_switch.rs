@@ -41,7 +41,7 @@ proptest! {
       , lower_q in 18435485074641125377..18446744073709551615u64) {
 
 
- 
+
         let switched = mod_switch(source, higher_q, lower_q);
         // prop_assert!(switched > 0)
         let unswitched = mod_switch(switched, lower_q, higher_q);

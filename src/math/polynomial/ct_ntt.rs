@@ -1,8 +1,5 @@
 type ntt_data_size = u64;
-use crate::{
-    math::modular::mod_arith::*,
-    math::modular::module_switch::*,
-};
+use crate::{math::modular::mod_arith::*, math::modular::module_switch::*};
 #[cfg(test)]
 use proptest::prelude::*;
 #[cfg(test)]
@@ -168,7 +165,6 @@ pub fn modinv(a: u64, q: u64) -> Result<u64, String> {
         g => Ok(x % q),
     }
 }
-
 
 pub fn CT_intt(
     ntt_form: &mut Vec<ntt_data_size>,

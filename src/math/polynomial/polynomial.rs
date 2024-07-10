@@ -10,11 +10,9 @@ use proptest::prelude::*;
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 
-use crate::math::polynomial::ct_ntt::*;
 use crate::math::modular::mod_arith::*;
 use crate::math::modular::module_switch::*;
-
-
+use crate::math::polynomial::ct_ntt::*;
 
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
@@ -245,9 +243,11 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     }
 }
 
-
-
-fn poly_approximately_equial<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>, delta: u64) -> bool {
+fn poly_approximately_equial<const ORDER: usize>(
+    a: &Polynomial<ORDER>,
+    b: &Polynomial<ORDER>,
+    delta: u64,
+) -> bool {
     let mut res = true;
     for i in 0..ORDER {
         if b[i]
@@ -277,7 +277,10 @@ fn poly_approximately_equial<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Poly
 // NWC
 const nwc_n: usize = 2048;
 
-fn polymul_nwc_naive<const ORDER:usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+fn polymul_nwc_naive<const ORDER: usize>(
+    a: &Polynomial<ORDER>,
+    b: &Polynomial<ORDER>,
+) -> Polynomial<ORDER> {
     let mut c: Vec<u64> = [0; 2 * nwc_n].to_vec();
     let mut d: Vec<u64> = [0; nwc_n].to_vec();
 
@@ -294,7 +297,10 @@ fn polymul_nwc_naive<const ORDER:usize>(a: &Polynomial<ORDER>, b: &Polynomial<OR
     Polynomial::new(Box::new(d.try_into().unwrap()))
 }
 
-fn polymul_nwc<const ORDER:usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+fn polymul_nwc<const ORDER: usize>(
+    a: &Polynomial<ORDER>,
+    b: &Polynomial<ORDER>,
+) -> Polynomial<ORDER> {
     // 2048
     let q: u64 = 18446744073709547521;
     let w: u64 = 13871691955188213127;
@@ -463,7 +469,10 @@ proptest! {
 // PWC
 const pwc_n: usize = 32;
 
-fn polymul_pwc<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+fn polymul_pwc<const ORDER: usize>(
+    a: &Polynomial<ORDER>,
+    b: &Polynomial<ORDER>,
+) -> Polynomial<ORDER> {
     // 2048
     // let q: u64 = 18446744073709547521;
     // let w: u64 = 13871691955188213127;
@@ -480,8 +489,16 @@ fn polymul_pwc<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>)
 
     // mod switch
 
-    let mut a_: Vec<u64> = a.coeffs().iter().map(|v| mod_switch(*v, u64::MAX, q)).collect();
-    let mut b_: Vec<u64> = b.coeffs().iter().map(|v| mod_switch(*v, u64::MAX, q)).collect();
+    let mut a_: Vec<u64> = a
+        .coeffs()
+        .iter()
+        .map(|v| mod_switch(*v, u64::MAX, q))
+        .collect();
+    let mut b_: Vec<u64> = b
+        .coeffs()
+        .iter()
+        .map(|v| mod_switch(*v, u64::MAX, q))
+        .collect();
 
     let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
@@ -506,7 +523,10 @@ fn polymul_pwc<const ORDER: usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>)
     Polynomial::new(Box::new(c.try_into().unwrap()))
 }
 
-fn polymul_pwc_naive<const ORDER:usize>(a: &Polynomial<ORDER>, b: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+fn polymul_pwc_naive<const ORDER: usize>(
+    a: &Polynomial<ORDER>,
+    b: &Polynomial<ORDER>,
+) -> Polynomial<ORDER> {
     let mut c: Vec<u64> = [0; 2 * pwc_n].to_vec();
     let mut d: Vec<u64> = [0; pwc_n].to_vec();
 
