@@ -13,22 +13,24 @@ use proptest_derive::Arbitrary;
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
+// use std::marker::PhantomData;
+
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
-pub struct Polynomial<const ORDER: usize>(Box<[u64; ORDER]>);
+pub struct Polynomial<const ORDER: usize>(Vec<u64>);
 
 impl<const ORDER: usize> Polynomial<ORDER> {
-    pub fn new(data: Box<[u64; ORDER]>) -> Self {
+    pub fn new(data: Vec<u64>) -> Self {
         Polynomial(data)
     }
     #[allow(dead_code)]
     fn new_monomial(value: u64, position: usize) -> Self {
-        let mut d = [0; ORDER];
+        let mut d = [0; ORDER].to_vec();
         d[position] = value;
-        Polynomial(Box::new(d))
+        Polynomial(d)
     }
 
-    fn coeffs(&self) -> Box<[u64; ORDER]> {
+    fn coeffs(&self) -> Vec<u64> {
         self.0.clone()
     }
 }
@@ -65,7 +67,7 @@ impl<const ORDER: usize> FromStr for Polynomial<ORDER> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let data: Vec<u64> = serde_json::from_str(s).unwrap();
-        Ok(Polynomial::<ORDER>::new(Box::new(data.try_into().unwrap())))
+        Ok(Polynomial::<ORDER>::new(data))
     }
 }
 
@@ -73,8 +75,8 @@ impl<const ORDER: usize> FromStr for Polynomial<ORDER> {
 #[test]
 fn polynomial_str_serialization() {
     // todo make iterative, make random
-    let a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
-    let poly: Polynomial<10> = Polynomial::new(Box::new(a));
+    let a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].to_vec();
+    let poly: Polynomial<10> = Polynomial::new(a);
 
     let serialized = (&poly).to_string();
     let deserialized: Polynomial<10> = FromStr::from_str(&serialized).unwrap();
@@ -112,7 +114,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 
     fn add(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
-        let mut sums = Box::new([0; ORDER]);
+        let mut sums = [0; ORDER].to_vec();
 
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
@@ -125,7 +127,7 @@ impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 
     fn sub(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
-        let mut sums = Box::new([0; ORDER]);
+        let mut sums = [0; ORDER].to_vec();
 
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_sub(rhs.coeffs()[i]);
@@ -139,18 +141,16 @@ impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 fn test_add_polynomial() {
     // todo make iterative, make random
     const ORDER: usize = 10;
-    let a: [u64; ORDER] = [u64::MAX, 2, 3, 4, 5, 6, 7, 8, 9, 0];
-    let b: [u64; ORDER] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
-    let sum: [u64; ORDER] = a
+    let a = [u64::MAX, 2, 3, 4, 5, 6, 7, 8, 9, 0].to_vec();
+    let b = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].to_vec();
+    let sum = a
         .iter()
         .zip(b.iter())
         .map(|(ai, bi)| ai.wrapping_add(*bi))
-        .collect::<Vec<u64>>()
-        .try_into()
-        .unwrap();
+        .collect::<Vec<u64>>();
 
-    let poly_a: Polynomial<ORDER> = Polynomial::new(Box::new(a));
-    let poly_b: Polynomial<ORDER> = Polynomial::new(Box::new(b));
+    let poly_a: Polynomial<ORDER> = Polynomial::new(a);
+    let poly_b: Polynomial<ORDER> = Polynomial::new(b);
     let poly_sum = &poly_a + &poly_b;
 
     assert_eq!(sum, *poly_sum.coeffs());
@@ -162,15 +162,13 @@ proptest! {
     #[test]
     fn pt_add_polynomial_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
         const ORDER: usize = 1000;
-        let a: [u64; ORDER] = *poly_a.coeffs();
-        let b: [u64; ORDER] = *poly_b.coeffs();
-        let sum: [u64; ORDER] = a
+        let a: Vec<u64> = poly_a.coeffs();
+        let b: Vec<u64> = poly_b.coeffs();
+        let sum = a
             .iter()
             .zip(b.iter())
             .map(|(ai, bi)| ai.wrapping_add(*bi))
-            .collect::<Vec<u64>>()
-            .try_into()
-            .unwrap();
+            .collect::<Vec<u64>>();
         let poly_sum = &poly_a + &poly_b;
         assert_eq!(sum, *poly_sum.coeffs());
     }
@@ -178,15 +176,13 @@ proptest! {
     #[test]
     fn pt_add_polynomial_1(poly_a in any::<Polynomial::<1>>(), poly_b in any::<Polynomial::<1>>()) {
         const ORDER: usize = 1;
-        let a: [u64; ORDER] = *poly_a.coeffs();
-        let b: [u64; ORDER] = *poly_b.coeffs();
-        let sum: [u64; ORDER] = a
+        let a: Vec<u64> = poly_a.coeffs();
+        let b: Vec<u64> = poly_b.coeffs();
+        let sum = a
             .iter()
             .zip(b.iter())
             .map(|(ai, bi)| ai.wrapping_add(*bi))
-            .collect::<Vec<u64>>()
-            .try_into()
-            .unwrap();
+            .collect::<Vec<u64>>();
         let poly_sum = &poly_a + &poly_b;
         assert_eq!(sum, *poly_sum.coeffs());
     }
@@ -203,15 +199,13 @@ proptest! {
     #[test]
     fn pt_sub_polynomial_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
         const ORDER: usize = 1000;
-        let a: [u64; ORDER] = *poly_a.coeffs();
-        let b: [u64; ORDER] = *poly_b.coeffs();
-        let sum: [u64; ORDER] = a
+        let a: Vec<u64> = poly_a.coeffs();
+        let b: Vec<u64> = poly_b.coeffs();
+        let sum = a
             .iter()
             .zip(b.iter())
             .map(|(ai, bi)| ai.wrapping_sub(*bi))
-            .collect::<Vec<u64>>()
-            .try_into()
-            .unwrap();
+            .collect::<Vec<u64>>();
         let poly_sum = &poly_a - &poly_b;
         assert_eq!(sum, *poly_sum.coeffs());
     }
@@ -219,15 +213,13 @@ proptest! {
     #[test]
     fn pt_sub_polynomial_1(poly_a in any::<Polynomial::<1>>(), poly_b in any::<Polynomial::<1>>()) {
         const ORDER: usize = 1;
-        let a: [u64; ORDER] = *poly_a.coeffs();
-        let b: [u64; ORDER] = *poly_b.coeffs();
-        let sum: [u64; ORDER] = a
+        let a: Vec<u64> = poly_a.coeffs();
+        let b: Vec<u64> = poly_b.coeffs();
+        let sum = a
             .iter()
             .zip(b.iter())
             .map(|(ai, bi)| ai.wrapping_sub(*bi))
-            .collect::<Vec<u64>>()
-            .try_into()
-            .unwrap();
+            .collect::<Vec<u64>>();
         let poly_sum = &poly_a - &poly_b;
         assert_eq!(sum, *poly_sum.coeffs());
     }
@@ -293,7 +285,7 @@ fn polymul_nwc_naive<const ORDER: usize>(
         d[i] = &c[i] - &c[i + nwc_n];
     }
 
-    Polynomial::new(Box::new(d.try_into().unwrap()))
+    Polynomial::new(d)
 }
 
 fn polymul_nwc<const ORDER: usize>(
@@ -321,8 +313,8 @@ fn polymul_nwc<const ORDER: usize>(
     // let mut a_: Vec<u64> = [0; n].to_vec();
     // let mut b_: Vec<u64> = [0; n].to_vec();
 
-    let mut a_: Vec<u64> = a.coeffs().to_vec();
-    let mut b_: Vec<u64> = b.coeffs().to_vec();
+    let mut a_: Vec<u64> = a.coeffs();
+    let mut b_: Vec<u64> = b.coeffs();
 
     for i in 0..n {
         a_[i] = (((a[i] as u128 * pow(psi, i as u32, q) as u128) % q as u128) % q as u128) as u64;
@@ -350,15 +342,15 @@ fn polymul_nwc<const ORDER: usize>(
     }
 
     let c: Vec<u64> = c_.iter().map(|v| mod_switch(*v, q, u64::MAX)).collect();
-    Polynomial::new(Box::new(c.try_into().unwrap()))
+    Polynomial::new(c)
 }
 
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_nwc_naive_comparation(a_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))
-                                      , b_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))) {
+    fn pt_polymul_nwc_naive_comparation(a_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>()))
+                                      , b_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>()))) {
         let a = a_.clone();
         let b = b_.clone();
 
@@ -373,11 +365,11 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_polymul_nwc_neutral_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_nwc_neutral_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
 
         const n: usize = nwc_n;
         let a = a_.clone();
-        let mut b = Polynomial::new(Box::new([0; n]));
+        let mut b = Polynomial::<nwc_n>::new([0; n].to_vec());
         b[0] = 1;
 
 
@@ -391,10 +383,10 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_polymul_nwc_absorbent_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_nwc_absorbent_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
         const n: usize = nwc_n;
         let a = a_.clone();
-        let b = Polynomial::new(Box::new([0; n]));
+        let b = Polynomial::<nwc_n>::new([0; n].to_vec());
 
         let c = polymul_nwc(&a, &b);
         prop_assert_eq!(c, b)
@@ -406,8 +398,8 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_nwc_commutative(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_nwc_commutative(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))
+                                , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
         let a = a_.clone();
         let b = b_.clone();
 
@@ -422,12 +414,12 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_nwc_accociative(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                , c_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_nwc_accociative(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))
+                                , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))
+                                , c_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
         let a = a_.clone();
         let b = b_.clone();
-                let c = c_.clone();
+        let c = c_.clone();
 
 
 
@@ -442,9 +434,9 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_nwc_distributive(   a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                    , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                    , c_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_nwc_distributive(   a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))
+                                    , b_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))
+                                    , c_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
         // let q: u64       = 18446744073709547521;
         let a = a_.clone();
         let b = b_.clone();
@@ -518,7 +510,7 @@ fn polymul_pwc<const ORDER: usize>(
         .iter()
         .map(|v| mod_switch(*v, q, u64::MAX))
         .collect();
-    Polynomial::new(Box::new(c.try_into().unwrap()))
+    Polynomial::new(c)
 }
 
 fn polymul_pwc_naive<const ORDER: usize>(
@@ -538,15 +530,15 @@ fn polymul_pwc_naive<const ORDER: usize>(
         d[i] = &c[i] + &c[i + pwc_n];
     }
 
-    Polynomial::new(Box::new(d.try_into().unwrap()))
+    Polynomial::new(d)
 }
 
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_pwc_naive_comparation(a_ in any::<[u16; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))
-    , b_ in any::<[u16; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap())))) {
+    fn pt_polymul_pwc_naive_comparation(a_ in any::<[u16; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>()))
+    , b_ in any::<[u16; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>()))) {
 
     // так как на больших числах переход через модуль приводит к очень большому расхождению
     let a = a_.clone();
@@ -563,13 +555,13 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_polymul_pwc_neutral_element(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_pwc_neutral_element(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
         // так как единица при модуль-свитчинге превращается в 0, то на выходе мы всегда получаем ноль.
         // Поэтому пока допустимая точность равна всему оступному диапазону чисел.
 
         const n: usize = pwc_n;
         let a = a_.clone();
-        let mut b = Polynomial::new(Box::new([0; n]));
+        let mut b = Polynomial::<pwc_n>::new([0; n].to_vec());
         b[0] = 1;
 
 
@@ -583,10 +575,10 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_polymul_pwc_absorbent_element(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_pwc_absorbent_element(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
         const n: usize = pwc_n;
         let a = a_.clone();
-        let b = Polynomial::new(Box::new([0; n]));
+        let b = Polynomial::<pwc_n>::new([0; n].to_vec());
 
         let c = polymul_pwc(&a, &b);
         prop_assert_eq!(c, b)
@@ -598,8 +590,8 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_pwc_commutative(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_pwc_commutative(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))
+                                , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
         let a = a_.clone();
         let b = b_.clone();
 
@@ -614,9 +606,9 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_pwc_associative(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-                                , c_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_pwc_associative(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))
+                                , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))
+                                , c_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
         let a = a_.clone();
         let b = b_.clone();
         let c = c_.clone();
@@ -633,9 +625,9 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_polymul_pwc_distributive(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-        , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))
-        , c_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::new(Box::new(v)))) {
+    fn pt_polymul_pwc_distributive(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))
+        , b_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))
+        , c_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
         // кажется здесь нужно более изощренная проверка по примерное равенство
 
         let a = a_.clone();
