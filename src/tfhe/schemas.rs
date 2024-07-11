@@ -4,6 +4,7 @@
 use std::marker::PhantomData;
 
 use crate::math::polynomial::polynomial::Polynomial;
+use std::ops::Index;
 
 
 
@@ -13,17 +14,18 @@ where
   Self::GLWECTContainerType: serde::ser::Serialize,
   Self::GLWECTContainerType: Sized,
   Self::GLWECTContainerType: serde::de::DeserializeOwned,
-  Self::GLWECTContainerType: from_Poly_list<1>,
-  Self::GLWECTContainerType: from_Poly_list<32>,
-  Self::GLWECTContainerType: from_Poly_list<1024>,
+  Self::GLWECTContainerType: from_poly_list<1>,
+  Self::GLWECTContainerType: from_poly_list<32>,
+  Self::GLWECTContainerType: from_poly_list<1024>,
 
   Self::SecretKeyContainerType: Clone,
   Self::SecretKeyContainerType: serde::ser::Serialize,
   Self::SecretKeyContainerType: Sized,
   Self::SecretKeyContainerType: serde::de::DeserializeOwned,
-  Self::SecretKeyContainerType: from_Poly_list<1>,
-  Self::SecretKeyContainerType: from_Poly_list<32>,
-  Self::SecretKeyContainerType: from_Poly_list<1024>,
+  Self::SecretKeyContainerType: from_poly_list<1>,
+  Self::SecretKeyContainerType: from_poly_list<32>,
+  Self::SecretKeyContainerType: from_poly_list<1024>,
+  Self::SecretKeyContainerType: Index<usize>,
 
   Self::PolynomialContainerType: Clone,
   Self::PolynomialContainerType: serde::ser::Serialize,
@@ -83,9 +85,9 @@ where
   type ContainerType;
 }
 #[derive(Debug, PartialEq)]
-pub struct LWE_Params<'a, S: TFHESchema>{phantom: PhantomData<&'a S>}
+pub struct LWE_Params<S: TFHESchema>{phantom: PhantomData<S>}
 
-impl<'a, S: TFHESchema>  LWE_CT_Params for LWE_Params<'a, S> {
+impl<S: TFHESchema>  LWE_CT_Params for LWE_Params<S> {
   const MASK_SIZE: usize = S::LWE_K;
   const POLINOMIAL_SIZE: usize= 1;
   type ScalarType = S::ScalarType;
@@ -93,9 +95,9 @@ impl<'a, S: TFHESchema>  LWE_CT_Params for LWE_Params<'a, S> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct GLWE_Params<'a, S: TFHESchema>{phantom: PhantomData<&'a S>}
+pub struct GLWE_Params<S: TFHESchema>{phantom: PhantomData<S>}
 
-impl<'a, S: TFHESchema>  LWE_CT_Params for GLWE_Params<'a, S> {
+impl<S: TFHESchema>  LWE_CT_Params for GLWE_Params<S> {
   const MASK_SIZE: usize = S::GLWE_K;
   const POLINOMIAL_SIZE: usize= S::GLWE_N;
   type ScalarType = S::ScalarType;
@@ -105,12 +107,12 @@ impl<'a, S: TFHESchema>  LWE_CT_Params for GLWE_Params<'a, S> {
 // #[derive(Debug, PartialEq, serde::ser::Serialize, Clone)]
 // struct Vec_u64(Vec<u64>);
 
-pub trait from_Poly_list<const Order: usize> {
+pub trait from_poly_list<const Order: usize> {
 
   fn from(d: Vec<Polynomial<Order>>) -> Self;  
 }
 
-impl<const Order: usize> from_Poly_list<Order> for Vec<u64> {
+impl<const Order: usize> from_poly_list<Order> for Vec<u64> {
 
   fn from(d: Vec<Polynomial<Order>>) -> Self {
   //  let a = Vec::with_capacity(d.len()*Order);
