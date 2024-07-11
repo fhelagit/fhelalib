@@ -1,31 +1,30 @@
 #![allow(non_camel_case_types)]
 
+use crate::math::polynomial::polynomial::Polynomial;
 use crate::{
     // math::polynomial::polynomial::Polynomial, 
     random::random::rnd_u64_uniform_binary,
     // tfhe::glwe::GLWECiphertext,
 };
+use crate::tfhe::schemas::{from_Poly_list, TFHESchema, TFHE_test_medium_u64};
 
-pub struct GLWE_secret_key<const Polynomialsize: usize, const Masksize: usize>(
-    [u64; Polynomialsize * Masksize],
-)
-where
-    [(); Polynomialsize * Masksize]: Sized;
+#[cfg(test)]
+use proptest::prelude::*;
 
-impl<const Polynomialsize: usize, const Masksize: usize> GLWE_secret_key<Polynomialsize, Masksize>
-where
-    [(); Polynomialsize * Masksize]: Sized,
-{
+#[derive(Debug, PartialEq)]
+pub struct GLWE_secret_key<S: TFHESchema>(S::SecretKeyContainerType);
+
+impl<S: TFHESchema> GLWE_secret_key<S> {
     pub fn new_random() -> Self {
-        let mut d: [u64; Polynomialsize * Masksize] = [0; Polynomialsize * Masksize];
-        for i in 0..Polynomialsize * Masksize {
-            d[i] = rnd_u64_uniform_binary();
+        let mut d: Vec<Polynomial<1>> = Vec::with_capacity(S::GLWE_K);
+        for i in 0..S::GLWE_K {
+            d.push(Polynomial::new(Box::new([rnd_u64_uniform_binary()])));
         }
-        GLWE_secret_key(d)
+        GLWE_secret_key::from_scalar_vector(from_Poly_list::from(d))
     }
 
     #[cfg(test)]
-    pub fn from_polynomial_list(data: [u64; Polynomialsize * Masksize]) -> Self {
+    pub fn from_scalar_vector(data: S::SecretKeyContainerType) -> Self {
         GLWE_secret_key(data)
     }
 
@@ -77,3 +76,27 @@ where
     //   GLWECiphertext::from_polynomial_list(data)
     // }
 }
+
+ // fn pt_secretkey_creatable(ct in any::<[u64; 1024*2]>().prop_map(|v| GLWECiphertext::<GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec())))
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+    #[test]
+    fn pt_secretkey_creatable(_ in 1..2u64) {
+
+        let sk: GLWE_secret_key<TFHE_test_medium_u64> = GLWE_secret_key::new_random();
+
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+    #[test]
+    fn pt_secretkey_creatable_from_polynomial_list(d in any::<[u64; 586]>().prop_map(|v| v.to_vec())) {
+
+        let sk: GLWE_secret_key<TFHE_test_medium_u64> = GLWE_secret_key::from_scalar_vector(d);
+
+    }
+}
+
