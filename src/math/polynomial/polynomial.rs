@@ -657,7 +657,7 @@ proptest! {
     }
 }
 
-impl<const ORDER: usize> IntoIterator for Polynomial<ORDER> {
+impl<const ORDER: usize> IntoIterator for &Polynomial<ORDER> {
     type Item = u64;
 
     type IntoIter = std::vec::IntoIter<Self::Item>;
