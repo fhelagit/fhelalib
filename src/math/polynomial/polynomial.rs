@@ -18,7 +18,7 @@ use crate::math::polynomial::ct_ntt::*;
 pub struct Polynomial<const ORDER: usize>(Box<[u64; ORDER]>);
 
 impl<const ORDER: usize> Polynomial<ORDER> {
-    fn new(data: Box<[u64; ORDER]>) -> Self {
+    pub fn new(data: Box<[u64; ORDER]>) -> Self {
         Polynomial(data)
     }
     #[allow(dead_code)]
