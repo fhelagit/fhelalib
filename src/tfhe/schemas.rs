@@ -3,20 +3,41 @@
 
 use std::marker::PhantomData;
 
+use crate::math::polynomial::polynomial::Polynomial;
+
+
 
 pub trait TFHESchema
 where 
-  Self::ArrayType: Clone,
-  Self::ArrayType: serde::ser::Serialize,
-  Self::ArrayType: Sized,
-  Self::ArrayType: serde::de::DeserializeOwned
+  Self::GLWECTContainerType: Clone,
+  Self::GLWECTContainerType: serde::ser::Serialize,
+  Self::GLWECTContainerType: Sized,
+  Self::GLWECTContainerType: serde::de::DeserializeOwned,
+  Self::GLWECTContainerType: from_Poly_list<1>,
+  Self::GLWECTContainerType: from_Poly_list<32>,
+  Self::GLWECTContainerType: from_Poly_list<1024>,
+
+  Self::SecretKeyContainerType: Clone,
+  Self::SecretKeyContainerType: serde::ser::Serialize,
+  Self::SecretKeyContainerType: Sized,
+  Self::SecretKeyContainerType: serde::de::DeserializeOwned,
+  Self::SecretKeyContainerType: from_Poly_list<1>,
+  Self::SecretKeyContainerType: from_Poly_list<32>,
+  Self::SecretKeyContainerType: from_Poly_list<1024>,
+
+  Self::PolynomialContainerType: Clone,
+  Self::PolynomialContainerType: serde::ser::Serialize,
+  Self::PolynomialContainerType: Sized,
+  Self::PolynomialContainerType: serde::de::DeserializeOwned,
   {
     const LWE_K: usize;
     const GLWE_N: usize;
     const GLWE_K: usize;
     const CT_MODULUS: u64;
     type ScalarType;
-    type ArrayType;
+    type GLWECTContainerType;
+    type SecretKeyContainerType;
+    type PolynomialContainerType;
 }
 
 #[derive(Debug, PartialEq)]
@@ -28,7 +49,9 @@ impl TFHESchema for TFHE_test_small_u64 {
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     type ScalarType = u64;
-    type ArrayType = Vec<Self::ScalarType>;
+    type GLWECTContainerType = Vec<Self::ScalarType>;
+    type SecretKeyContainerType = Vec<Self::ScalarType>;
+    type PolynomialContainerType = Vec<Self::ScalarType>;
 }
 
 
@@ -41,21 +64,23 @@ impl TFHESchema for TFHE_test_medium_u64 {
   const GLWE_K: usize = 1;
   const CT_MODULUS: u64 = u64::MAX;
   type ScalarType = u64;
-  type ArrayType = Vec<Self::ScalarType>;
+  type GLWECTContainerType = Vec<Self::ScalarType>;
+  type SecretKeyContainerType = Vec<Self::ScalarType>;
+  type PolynomialContainerType = Vec<Self::ScalarType>;
 }
 
 
 pub trait LWE_CT_Params 
 where
-  Self::ArrayType: Clone,
-  Self::ArrayType: serde::ser::Serialize,
-  Self::ArrayType: Sized,
-  Self::ArrayType: serde::de::DeserializeOwned
+  Self::ContainerType: Clone,
+  Self::ContainerType: serde::ser::Serialize,
+  Self::ContainerType: Sized,
+  Self::ContainerType: serde::de::DeserializeOwned
 {
   const MASK_SIZE: usize;
   const POLINOMIAL_SIZE: usize;
   type ScalarType;
-  type ArrayType;
+  type ContainerType;
 }
 #[derive(Debug, PartialEq)]
 pub struct LWE_Params<'a, S: TFHESchema>{phantom: PhantomData<&'a S>}
@@ -64,8 +89,9 @@ impl<'a, S: TFHESchema>  LWE_CT_Params for LWE_Params<'a, S> {
   const MASK_SIZE: usize = S::LWE_K;
   const POLINOMIAL_SIZE: usize= 1;
   type ScalarType = S::ScalarType;
-  type ArrayType = S::ArrayType;
+  type ContainerType = S::GLWECTContainerType;
 }
+
 #[derive(Debug, PartialEq)]
 pub struct GLWE_Params<'a, S: TFHESchema>{phantom: PhantomData<&'a S>}
 
@@ -73,5 +99,29 @@ impl<'a, S: TFHESchema>  LWE_CT_Params for GLWE_Params<'a, S> {
   const MASK_SIZE: usize = S::GLWE_K;
   const POLINOMIAL_SIZE: usize= S::GLWE_N;
   type ScalarType = S::ScalarType;
-  type ArrayType = S::ArrayType;
+  type ContainerType = S::GLWECTContainerType;
 }
+
+// #[derive(Debug, PartialEq, serde::ser::Serialize, Clone)]
+// struct Vec_u64(Vec<u64>);
+
+pub trait from_Poly_list<const Order: usize> {
+
+  fn from(d: Vec<Polynomial<Order>>) -> Self;  
+}
+
+impl<const Order: usize> from_Poly_list<Order> for Vec<u64> {
+
+  fn from(d: Vec<Polynomial<Order>>) -> Self {
+  //  let a = Vec::with_capacity(d.len()*Order);
+    let a = d.iter().flatten().collect::<Vec<u64>>();
+    a
+  } 
+}
+
+// impl Into<Vec<u64>> for Vec<Polynomial<32>> {
+
+//   fn into(d: Vec<Polynomial<32>>) -> Vec<Polynomial<32>> {
+//     Vec::new()
+//   } 
+// }

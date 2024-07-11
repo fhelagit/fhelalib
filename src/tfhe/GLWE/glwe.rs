@@ -4,12 +4,12 @@ extern crate serde_json;
 
 #[cfg(test)]
 use proptest::prelude::*;
-#[cfg(test)]
+// #[cfg(test)]
 // use proptest_derive::Arbitrary;
-use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params};
+use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, };
 
 #[derive(Debug, PartialEq)]
-pub struct GLWECiphertext<P: LWE_CT_Params>(P::ArrayType);
+pub struct GLWECiphertext<P: LWE_CT_Params>(P::ContainerType);
 
 impl<P: LWE_CT_Params> GLWECiphertext<P>
 {
@@ -20,7 +20,7 @@ impl<P: LWE_CT_Params> GLWECiphertext<P>
     //   GLWECiphertext(data)
     // }
 
-    pub fn from_polynomial_list(data: P::ArrayType) -> Self {
+    pub fn from_polynomial_list(data: P::ContainerType) -> Self {
         GLWECiphertext(data)
     }
 }
@@ -46,7 +46,7 @@ impl<P: LWE_CT_Params> FromStr
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data: P::ArrayType = serde_json::from_str(s).unwrap();
+        let data: P::ContainerType = serde_json::from_str(s).unwrap();
         Ok(GLWECiphertext::from_polynomial_list(data))
     }
 }
