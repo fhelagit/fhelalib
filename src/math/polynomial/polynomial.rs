@@ -656,3 +656,13 @@ proptest! {
 
     }
 }
+
+impl<const ORDER: usize> IntoIterator for Polynomial<ORDER> {
+    type Item = u64;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.to_vec().into_iter()
+    }
+}
