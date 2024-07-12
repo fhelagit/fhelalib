@@ -23,6 +23,7 @@ pub fn rnd_u64_gausean() -> u64 {
     if round(sampled, 0) >= 0.0 {
         return round(sampled, 0) as u64;
     } else {
-        return u64::MAX - round(-sampled, 0) as u64 + 1;
+        return round(sampled, 0) as u64;
+        //return u64::MAX - round(-sampled, 0) as u64 + 1;
     }
 }

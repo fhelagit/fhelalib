@@ -230,6 +230,9 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
+        if ORDER == 1 {
+            return Polynomial::new([self[0]*rhs[0]].to_vec())
+        }
         polymul_pwc_naive(self, rhs)
     }
 }

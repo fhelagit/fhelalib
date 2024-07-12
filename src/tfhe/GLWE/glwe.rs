@@ -1,12 +1,13 @@
 use std::fmt::{self, Display};
 use std::str::FromStr;
+use crate::math::polynomial::polynomial::Polynomial;
 extern crate serde_json;
 
 #[cfg(test)]
 use proptest::prelude::*;
 // #[cfg(test)]
 // use proptest_derive::Arbitrary;
-use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, };
+use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, from_u64};
 
 #[derive(Debug, PartialEq)]
 pub struct GLWECiphertext<P: LWE_CT_Params>(P::ContainerType);
@@ -22,6 +23,11 @@ impl<P: LWE_CT_Params> GLWECiphertext<P>
 
     pub fn from_polynomial_list(data: P::ContainerType) -> Self {
         GLWECiphertext(data)
+    }
+
+    pub fn get_poly_by_index(&self, ind: usize) -> Polynomial<1>{
+        //const p:usize = P::POLINOMIAL_SIZE;
+        Polynomial::<1>::new([from_u64::to(self.0[ind])].to_vec())
     }
 }
 

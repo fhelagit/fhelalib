@@ -10,6 +10,12 @@ use std::ops::Index;
 
 pub trait TFHESchema
 where 
+
+  Self::ScalarType: Clone,
+  Self::ScalarType: Sized,
+  Self::ScalarType: from_u64,
+  Self::ScalarType: Copy,
+
   Self::GLWECTContainerType: Clone,
   Self::GLWECTContainerType: serde::ser::Serialize,
   Self::GLWECTContainerType: Sized,
@@ -17,6 +23,7 @@ where
   Self::GLWECTContainerType: from_poly_list<1>,
   Self::GLWECTContainerType: from_poly_list<32>,
   Self::GLWECTContainerType: from_poly_list<1024>,
+  Self::GLWECTContainerType: Index<usize, Output = Self::ScalarType>,
 
   Self::SecretKeyContainerType: Clone,
   Self::SecretKeyContainerType: serde::ser::Serialize,
@@ -25,7 +32,7 @@ where
   Self::SecretKeyContainerType: from_poly_list<1>,
   Self::SecretKeyContainerType: from_poly_list<32>,
   Self::SecretKeyContainerType: from_poly_list<1024>,
-  Self::SecretKeyContainerType: Index<usize>,
+  Self::SecretKeyContainerType: Index<usize, Output = Self::ScalarType>,
 
   Self::PolynomialContainerType: Clone,
   Self::PolynomialContainerType: serde::ser::Serialize,
@@ -35,6 +42,8 @@ where
     const LWE_K: usize;
     const GLWE_N: usize;
     const GLWE_K: usize;
+    const GLWE_Q: usize;
+    const GLEV_B: usize;
     const CT_MODULUS: u64;
     type ScalarType;
     type GLWECTContainerType;
@@ -46,10 +55,12 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
-    const LWE_K: usize = 2;
+    const LWE_K: usize = 1000;
     const GLWE_N: usize = 32;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
+    const GLWE_Q: usize = 64;
+    const GLEV_B: usize = 8;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
     type SecretKeyContainerType = Vec<Self::ScalarType>;
@@ -61,14 +72,16 @@ impl TFHESchema for TFHE_test_small_u64 {
 pub struct TFHE_test_medium_u64;
 
 impl TFHESchema for TFHE_test_medium_u64 {
-  const LWE_K: usize = 586;
-  const GLWE_N: usize = 1024;
-  const GLWE_K: usize = 1;
-  const CT_MODULUS: u64 = u64::MAX;
-  type ScalarType = u64;
-  type GLWECTContainerType = Vec<Self::ScalarType>;
-  type SecretKeyContainerType = Vec<Self::ScalarType>;
-  type PolynomialContainerType = Vec<Self::ScalarType>;
+    const LWE_K: usize = 586;
+    const GLWE_N: usize = 1024;
+    const GLWE_K: usize = 1;
+    const CT_MODULUS: u64 = u64::MAX;
+    const GLWE_Q: usize = 64;
+    const GLEV_B: usize = 8;
+    type ScalarType = u64;
+    type GLWECTContainerType = Vec<Self::ScalarType>;
+    type SecretKeyContainerType = Vec<Self::ScalarType>;
+    type PolynomialContainerType = Vec<Self::ScalarType>;
 }
 
 
@@ -77,7 +90,12 @@ where
   Self::ContainerType: Clone,
   Self::ContainerType: serde::ser::Serialize,
   Self::ContainerType: Sized,
-  Self::ContainerType: serde::de::DeserializeOwned
+  Self::ContainerType: serde::de::DeserializeOwned,
+  Self::ContainerType: Index<usize, Output = Self::ScalarType>,
+  Self::ScalarType: Clone,
+  Self::ScalarType: Sized,
+  Self::ScalarType: from_u64,
+  Self::ScalarType: Copy,
 {
   const MASK_SIZE: usize;
   const POLINOMIAL_SIZE: usize;
@@ -118,6 +136,22 @@ impl<const Order: usize> from_poly_list<Order> for Vec<u64> {
   //  let a = Vec::with_capacity(d.len()*Order);
     let a = d.iter().flatten().collect::<Vec<u64>>();
     a
+  } 
+}
+
+pub trait from_u64 {
+
+  fn from(d: u64) -> Self;  
+  fn to(d: Self) -> u64;  
+}
+
+impl from_u64 for u64 {
+
+  fn from(d: u64) -> Self {
+    d
+  } 
+  fn to(d: Self) -> u64 {
+    d
   } 
 }
 
