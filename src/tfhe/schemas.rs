@@ -85,41 +85,60 @@ impl TFHESchema for TFHE_test_medium_u64 {
 }
 
 
-pub trait LWE_CT_Params 
+pub trait LWE_CT_Params<S: TFHESchema> 
 where
   Self::ContainerType: Clone,
   Self::ContainerType: serde::ser::Serialize,
   Self::ContainerType: Sized,
   Self::ContainerType: serde::de::DeserializeOwned,
   Self::ContainerType: Index<usize, Output = Self::ScalarType>,
+  Self::ContainerType: from_poly_list<1>,
+  Self::ContainerType: from_poly_list<32>,
+  Self::ContainerType: from_poly_list<1024>,
+
   Self::ScalarType: Clone,
   Self::ScalarType: Sized,
   Self::ScalarType: from_u64,
   Self::ScalarType: Copy,
+
+  Self::SecretKeyContainerType: Clone,
+  Self::SecretKeyContainerType: serde::ser::Serialize,
+  Self::SecretKeyContainerType: Sized,
+  Self::SecretKeyContainerType: serde::de::DeserializeOwned,
+  Self::SecretKeyContainerType: from_poly_list<1>,
+  Self::SecretKeyContainerType: from_poly_list<32>,
+  Self::SecretKeyContainerType: from_poly_list<1024>,
+  Self::SecretKeyContainerType: Index<usize, Output = Self::ScalarType>,
 {
   const MASK_SIZE: usize;
   const POLINOMIAL_SIZE: usize;
   type ScalarType;
   type ContainerType;
+  type SecretKeyContainerType;
+  type Schema: TFHESchema;
 }
 #[derive(Debug, PartialEq)]
 pub struct LWE_Params<S: TFHESchema>{phantom: PhantomData<S>}
 
-impl<S: TFHESchema>  LWE_CT_Params for LWE_Params<S> {
+impl<S: TFHESchema>  LWE_CT_Params<S> for LWE_Params<S> {
   const MASK_SIZE: usize = S::LWE_K;
   const POLINOMIAL_SIZE: usize= 1;
   type ScalarType = S::ScalarType;
   type ContainerType = S::GLWECTContainerType;
+  type SecretKeyContainerType = S::SecretKeyContainerType;
+  type Schema = S;
 }
 
 #[derive(Debug, PartialEq)]
 pub struct GLWE_Params<S: TFHESchema>{phantom: PhantomData<S>}
 
-impl<S: TFHESchema>  LWE_CT_Params for GLWE_Params<S> {
+impl<S: TFHESchema>  LWE_CT_Params<S> for GLWE_Params<S> {
   const MASK_SIZE: usize = S::GLWE_K;
   const POLINOMIAL_SIZE: usize= S::GLWE_N;
   type ScalarType = S::ScalarType;
   type ContainerType = S::GLWECTContainerType;
+  type SecretKeyContainerType = S::SecretKeyContainerType;
+  type Schema = S;
 }
 
 // #[derive(Debug, PartialEq, serde::ser::Serialize, Clone)]
