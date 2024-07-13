@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 
 
+
 use std::marker::PhantomData;
 
 use crate::math::polynomial::polynomial::Polynomial;
@@ -20,18 +21,20 @@ where
   Self::GLWECTContainerType: serde::ser::Serialize,
   Self::GLWECTContainerType: Sized,
   Self::GLWECTContainerType: serde::de::DeserializeOwned,
-  Self::GLWECTContainerType: from_poly_list<1>,
-  Self::GLWECTContainerType: from_poly_list<32>,
-  Self::GLWECTContainerType: from_poly_list<1024>,
+  Self::GLWECTContainerType: from_poly_list,
+  // Self::GLWECTContainerType: from_poly_list<1>,
+  // Self::GLWECTContainerType: from_poly_list<32>,
+  // Self::GLWECTContainerType: from_poly_list<1024>,
   Self::GLWECTContainerType: Index<usize, Output = Self::ScalarType>,
 
   Self::SecretKeyContainerType: Clone,
   Self::SecretKeyContainerType: serde::ser::Serialize,
   Self::SecretKeyContainerType: Sized,
   Self::SecretKeyContainerType: serde::de::DeserializeOwned,
-  Self::SecretKeyContainerType: from_poly_list<1>,
-  Self::SecretKeyContainerType: from_poly_list<32>,
-  Self::SecretKeyContainerType: from_poly_list<1024>,
+  Self::SecretKeyContainerType: from_poly_list,
+  // Self::SecretKeyContainerType: from_poly_list<1>,
+  // Self::SecretKeyContainerType: from_poly_list<32>,
+  // Self::SecretKeyContainerType: from_poly_list<1024>,
   Self::SecretKeyContainerType: Index<usize, Output = Self::ScalarType>,
 
   Self::PolynomialContainerType: Clone,
@@ -55,7 +58,7 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
-    const LWE_K: usize = 1000;
+    const LWE_K: usize = 2;
     const GLWE_N: usize = 32;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
@@ -92,9 +95,11 @@ where
   Self::ContainerType: Sized,
   Self::ContainerType: serde::de::DeserializeOwned,
   Self::ContainerType: Index<usize, Output = Self::ScalarType>,
-  Self::ContainerType: from_poly_list<1>,
-  Self::ContainerType: from_poly_list<32>,
-  Self::ContainerType: from_poly_list<1024>,
+  Self::ContainerType: from_poly_list,
+  // Self::ContainerType: from_poly_list<1>,
+  // Self::ContainerType: from_poly_list<32>,
+  // Self::ContainerType: from_poly_list<1024>,
+  // Self::ContainerType: from_poly_list<{Self::POLINOMIAL_SIZE}>,
 
   Self::ScalarType: Clone,
   Self::ScalarType: Sized,
@@ -105,10 +110,12 @@ where
   Self::SecretKeyContainerType: serde::ser::Serialize,
   Self::SecretKeyContainerType: Sized,
   Self::SecretKeyContainerType: serde::de::DeserializeOwned,
-  Self::SecretKeyContainerType: from_poly_list<1>,
-  Self::SecretKeyContainerType: from_poly_list<32>,
-  Self::SecretKeyContainerType: from_poly_list<1024>,
+  Self::SecretKeyContainerType: from_poly_list,
+  // Self::SecretKeyContainerType: from_poly_list<1>,
+  // Self::SecretKeyContainerType: from_poly_list<32>,
+  // Self::SecretKeyContainerType: from_poly_list<1024>,
   Self::SecretKeyContainerType: Index<usize, Output = Self::ScalarType>,
+  Self::HelperType: Sized,
 {
   const MASK_SIZE: usize;
   const POLINOMIAL_SIZE: usize;
@@ -116,6 +123,7 @@ where
   type ContainerType;
   type SecretKeyContainerType;
   type Schema: TFHESchema;
+  type HelperType= [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
 }
 #[derive(Debug, PartialEq)]
 pub struct LWE_Params<S: TFHESchema>{phantom: PhantomData<S>}
@@ -127,6 +135,7 @@ impl<S: TFHESchema>  LWE_CT_Params<S> for LWE_Params<S> {
   type ContainerType = S::GLWECTContainerType;
   type SecretKeyContainerType = S::SecretKeyContainerType;
   type Schema = S;
+  type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
 }
 
 #[derive(Debug, PartialEq)]
@@ -139,19 +148,20 @@ impl<S: TFHESchema>  LWE_CT_Params<S> for GLWE_Params<S> {
   type ContainerType = S::GLWECTContainerType;
   type SecretKeyContainerType = S::SecretKeyContainerType;
   type Schema = S;
+  type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
 }
 
 // #[derive(Debug, PartialEq, serde::ser::Serialize, Clone)]
 // struct Vec_u64(Vec<u64>);
 
-pub trait from_poly_list<const Order: usize> {
+pub trait from_poly_list {
 
-  fn from(d: Vec<Polynomial<Order>>) -> Self;  
+  fn from<const Order: usize>(d: Vec<Polynomial<Order>>) -> Self;  
 }
 
-impl<const Order: usize> from_poly_list<Order> for Vec<u64> {
+impl from_poly_list for Vec<u64> {
 
-  fn from(d: Vec<Polynomial<Order>>) -> Self {
+  fn from<const Order: usize>(d: Vec<Polynomial<Order>>) -> Self {
   //  let a = Vec::with_capacity(d.len()*Order);
     let a = d.iter().flatten().collect::<Vec<u64>>();
     a

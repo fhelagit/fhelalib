@@ -115,6 +115,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn add(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         let mut sums = [0; ORDER].to_vec();
+        dbg!(&sums);
 
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
@@ -520,17 +521,20 @@ fn polymul_pwc_naive<const ORDER: usize>(
     a: &Polynomial<ORDER>,
     b: &Polynomial<ORDER>,
 ) -> Polynomial<ORDER> {
-    let mut c: Vec<u64> = [0; 2 * pwc_n].to_vec();
-    let mut d: Vec<u64> = [0; pwc_n].to_vec();
+    let mut c: Vec<u64> = Vec::with_capacity(2 * ORDER);
+    for i in 0..2 * ORDER {
+        c.push(0);
+    }
+    let mut d: Vec<u64> = Vec::with_capacity(ORDER);
 
-    for i in 0..pwc_n {
-        for j in 0..pwc_n {
-            c[i + j] = &c[i + j] + &(&(a[i]) * &(b[j]));
+    for i in 0..ORDER {
+        for j in 0..ORDER {
+            c[i + j] = c[i + j].wrapping_add(((a[i]).wrapping_mul((b[j]))));
         }
     }
 
-    for i in 0..pwc_n {
-        d[i] = &c[i] + &c[i + pwc_n];
+    for i in 0..ORDER {
+        d.push(c[i].wrapping_add(c[i + ORDER]));
     }
 
     Polynomial::new(d)
