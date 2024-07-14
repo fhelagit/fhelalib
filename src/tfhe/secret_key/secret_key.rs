@@ -9,8 +9,8 @@ use crate::{
     random::random::rnd_u64_uniform,
     // tfhe::glwe::GLWECiphertext,
 };
-use crate::tfhe::schemas::{from_poly_list, from_u64, GLWE_Params, LWE_CT_Params, LWE_Params, TFHESchema, TFHE_test_medium_u64, TFHE_test_small_u64};
-use std::ops::{Index};
+use crate::tfhe::schemas::{from_poly_list, from_u64, GLWE_Params, LWE_CT_Params, LWE_Params, TFHESchema, TFHE_test_small_u64};
+// use std::ops::{Index};
 
 #[cfg(test)]
 use proptest::prelude::*;
@@ -19,7 +19,7 @@ use proptest::prelude::*;
 pub struct GLWE_secret_key<S: TFHESchema, P: LWE_CT_Params<S>>(P::SecretKeyContainerType);
 
 impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWE_secret_key<S, P> 
-where [(); {P::POLINOMIAL_SIZE}]:Sized {
+where [(); P::POLINOMIAL_SIZE]:Sized {
     pub fn new_random() -> Self {
         let mut d: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(S::LWE_K);
         for _ in 0..S::LWE_K {

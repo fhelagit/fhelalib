@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 use std::str::FromStr;
+use std::ops;
 use crate::math::polynomial::polynomial::Polynomial;
 extern crate serde_json;
 
@@ -7,7 +8,7 @@ extern crate serde_json;
 use proptest::prelude::*;
 // #[cfg(test)]
 // use proptest_derive::Arbitrary;
-use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, from_u64, TFHESchema};
+use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, from_u64, TFHESchema, from_poly_list};
 
 #[derive(Debug, PartialEq)]
 pub struct GLWECiphertext<S: TFHESchema, P: LWE_CT_Params<S>>(P::ContainerType);
@@ -32,6 +33,8 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWECiphertext<S, P>
             v.push(from_u64::to(self.0[ind*P::POLINOMIAL_SIZE+i]));
         }
         Polynomial::<{P::POLINOMIAL_SIZE}>::new(v)
+ 
+
 
     }
 }
@@ -77,11 +80,41 @@ fn test_glwe_to_str_serialization() {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_glwe_ct_str_serialization(ct in any::<[u64; 1024*2]>().prop_map(|v| GLWECiphertext::<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec()))) {
+    fn pt_glwe_ct_str_serialization(ct in any::<[u64; GLWE_Params::<TFHE_test_medium_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_medium_u64>::MASK_SIZE+1)]>()
+        .prop_map(|v| GLWECiphertext::<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec()))) {
 
         let serialized = ct.to_string();
         let deserialized: GLWECiphertext<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>> = FromStr::from_str(&serialized).unwrap();
         prop_assert_eq!(ct, deserialized);
+
+    }
+}
+
+// ops
+impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Add<&GLWECiphertext<S, P>> for &GLWECiphertext<S, P> where [(); {P::POLINOMIAL_SIZE}]: Sized {
+    type Output = GLWECiphertext<S, P>;
+
+    fn add(self, rhs: &GLWECiphertext<S, P>) -> GLWECiphertext<S, P> {
+        let mut sums: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE+1);
+
+
+        for i in 0..=P::MASK_SIZE {
+            sums.push(&self.get_poly_by_index(i) + &rhs.get_poly_by_index(i));
+        }
+        GLWECiphertext::<S, P>::from_polynomial_list(from_poly_list::from(sums))
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_glwe_ct_add_commutative(a in any::<[u64; GLWE_Params::<TFHE_test_medium_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_medium_u64>::MASK_SIZE+1)]>()
+    .prop_map(|v| GLWECiphertext::<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec())), 
+    b in any::<[u64; GLWE_Params::<TFHE_test_medium_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_medium_u64>::MASK_SIZE+1)]>()
+    .prop_map(|v| GLWECiphertext::<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec())))  {
+
+        prop_assert_eq!(&a + &b, &b + &a);
 
     }
 }

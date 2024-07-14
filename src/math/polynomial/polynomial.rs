@@ -522,14 +522,14 @@ fn polymul_pwc_naive<const ORDER: usize>(
     b: &Polynomial<ORDER>,
 ) -> Polynomial<ORDER> {
     let mut c: Vec<u64> = Vec::with_capacity(2 * ORDER);
-    for i in 0..2 * ORDER {
+    for _ in 0..2 * ORDER {
         c.push(0);
     }
     let mut d: Vec<u64> = Vec::with_capacity(ORDER);
 
     for i in 0..ORDER {
         for j in 0..ORDER {
-            c[i + j] = c[i + j].wrapping_add(((a[i]).wrapping_mul((b[j]))));
+            c[i + j] = c[i + j].wrapping_add(a[i].wrapping_mul(b[j]));
         }
     }
 
