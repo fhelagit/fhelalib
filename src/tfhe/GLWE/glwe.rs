@@ -13,6 +13,10 @@ use proptest::prelude::*;
 // use proptest_derive::Arbitrary;
 use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, from_u64, TFHESchema, from_poly_list};
 
+// #[cfg(test)]
+
+// use crate::tfhe::secret_key::GLWE_secret_key;
+
 #[derive(Debug, PartialEq)]
 pub struct GLWECiphertext<S: TFHESchema, P: LWE_CT_Params<S>>(P::ContainerType);
 
@@ -100,8 +104,8 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Add<&GLWECiphertext<S, P>> for &GL
     fn add(self, rhs: &GLWECiphertext<S, P>) -> GLWECiphertext<S, P> {
         let mut sums: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE+1);
 
-
-        for i in 0..=P::MASK_SIZE {
+        println!("P::MASK_SIZE: {}", P::MASK_SIZE);
+        for i in 0..(P::MASK_SIZE+1) {
             sums.push(&self.get_poly_by_index(i) + &rhs.get_poly_by_index(i));
         }
         GLWECiphertext::<S, P>::from_polynomial_list(from_poly_list::from(sums))
@@ -112,32 +116,32 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Add<&GLWECiphertext<S, P>> for &GL
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_glwe_ct_add_commutative(a in any::<[u64; GLWE_Params::<TFHE_test_medium_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_medium_u64>::MASK_SIZE+1)]>()
-    .prop_map(|v| GLWECiphertext::<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec())), 
-    b in any::<[u64; GLWE_Params::<TFHE_test_medium_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_medium_u64>::MASK_SIZE+1)]>()
-    .prop_map(|v| GLWECiphertext::<TFHE_test_medium_u64, GLWE_Params<TFHE_test_medium_u64>>::from_polynomial_list(v.to_vec())))  {
+    fn pt_glwe_ct_add_commutative(a in any::<[u64; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_small_u64>::MASK_SIZE+1)]>()
+    .prop_map(|v| GLWECiphertext::<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>::from_polynomial_list(v.to_vec())), 
+    b in any::<[u64; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_small_u64>::MASK_SIZE+1)]>()
+    .prop_map(|v| GLWECiphertext::<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>::from_polynomial_list(v.to_vec())))  {
 
-        prop_assert_eq!(&a + &b, &b + &a);
-
-    }
-}
-
-#[cfg(test)]
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
-    #[test]
-    fn pt_glwe_ct_add(a in any::<[u4; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| *vv as u64).collect())), 
-                      b in any::<[u4; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| *vv as u64).collect())))  {
-
-        let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
-
-        let encripted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&a));
-        let encripted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&b));
-        let sum = &encripted_a + &encripted_b;
-        let decripted_sum = sk.decript(dbg!(&sum));
-        let expected_sum = &a + &b;
-
-        prop_assert_eq!(decripted_sum, expected_sum);
+        prop_assert_eq!(dbg!(&a) + dbg!(&b), &b + &a);
 
     }
 }
+
+// #[cfg(test)]
+// proptest! {
+//     #![proptest_config(ProptestConfig::with_cases(1000))]
+//     #[test]
+//     fn pt_glwe_ct_add(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| *vv as u64).collect())), 
+//                       b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| *vv as u64).collect())))  {
+
+//         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+
+//         let encripted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&a));
+//         let encripted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&b));
+//         let sum = &encripted_a + &encripted_b;
+//         let decripted_sum = sk.decript(dbg!(&sum));
+//         let expected_sum = &a + &b;
+
+//         prop_assert_eq!(decripted_sum, expected_sum);
+
+//     }
+// }

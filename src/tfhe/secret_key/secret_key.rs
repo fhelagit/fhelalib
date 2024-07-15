@@ -2,7 +2,7 @@
 
 use crate::math::polynomial::polynomial::Polynomial;
 use crate::random::random::rnd_u64_gausean;
-use crate::tfhe::glwe::GLWECiphertext;
+use crate::tfhe::GLWE::GLWECiphertext;
 use crate::{
     // math::polynomial::polynomial::Polynomial, 
     random::random::rnd_u64_uniform_binary,
@@ -18,6 +18,8 @@ use proptest::prelude::*;
 #[derive(Debug, PartialEq)]
 pub struct GLWE_secret_key<S: TFHESchema, P: LWE_CT_Params<S>>(P::SecretKeyContainerType);
 
+pub struct GLWE_secret_key2<S: TFHESchema, P: LWE_CT_Params<S>>(P::SecretKeyContainerType);
+
 impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWE_secret_key<S, P> 
 where [(); P::POLINOMIAL_SIZE]:Sized {
     pub fn new_random() -> Self {
@@ -28,7 +30,7 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         GLWE_secret_key::from_scalar_vector(from_poly_list::from(d))
     }
 
-    #[cfg(test)]
+    // #[cfg(test)]
     pub fn from_scalar_vector(data: P::SecretKeyContainerType) -> Self {
         GLWE_secret_key(data)
     }
@@ -52,14 +54,14 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         let err = Polynomial::<{P::POLINOMIAL_SIZE}>::new(dbg!(e));
        // dbg!(self.0);
         // создать полиномы ашки
-        let mut a_s: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(S::LWE_K);
-        for _ in 0..S::LWE_K {
+        let mut a_s: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE);
+        for _ in 0..P::MASK_SIZE {
             a_s.push(Polynomial::new([rnd_u64_uniform(); P::POLINOMIAL_SIZE].to_vec()));
         }
             dbg!(&a_s);
         // посчитать мультисумму
         let mut multysum = Polynomial::<{P::POLINOMIAL_SIZE}>::new([0 ; P::POLINOMIAL_SIZE].to_vec());
-        for i in 0..S::LWE_K {
+        for i in 0..P::MASK_SIZE {
             multysum = dbg!(&multysum) + dbg!(&(dbg!(&a_s[i]) * dbg!(&(self.get_poly_by_index(i)))));
         }
 
@@ -79,15 +81,17 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
 
     fn decript(&self, ct: &GLWECiphertext<S, P>) -> Polynomial<{P::POLINOMIAL_SIZE}> {
 
-
+        println!("decript 1");
 
         // // посчитать мультисумму
         let mut multysum: Polynomial<{P::POLINOMIAL_SIZE}> = Polynomial::<{P::POLINOMIAL_SIZE}>::new([0 ; P::POLINOMIAL_SIZE].to_vec());
-        for i in 0..S::LWE_K {
+        for i in 0..P::MASK_SIZE {
             multysum = &multysum + &(&ct.get_poly_by_index(i) * &(self.get_poly_by_index(i)));
         }
 
-        let shifted_message = dbg!(&ct.get_poly_by_index(S::LWE_K)) - dbg!(&multysum);
+        println!("decript 2");
+        let shifted_message = dbg!(&ct.get_poly_by_index(P::MASK_SIZE)) - dbg!(&multysum);
+        println!("decript 3");
         let delta = (S::GLWE_Q - S::GLEV_B) as u32;
         let message = Polynomial::new(dbg!(shifted_message).into_iter().map(|v| v.wrapping_shr(delta)).collect());
 
@@ -151,6 +155,33 @@ proptest! {
     fn pt_secretkey_creatable_from_polynomial_list(d in any::<[u64; 586]>().prop_map(|v| v.to_vec())) {
 
         let _: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::from_scalar_vector(d);
+
+    }
+}
+
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_glwe_ct_add(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())), 
+                      b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())))  {
+
+        let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+
+        let encripted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&a));
+        let encripted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&b));
+        println!("pt_glwe_ct_add 1");
+        let sum = dbg!(&encripted_a) + &encripted_b;
+        println!("pt_glwe_ct_add 2");
+
+        //здесь
+        let decripted_sum = sk.decript(dbg!(&sum));
+        println!("pt_glwe_ct_add 3");
+        let expected_sum = dbg!(&a) + dbg!(&b);
+        println!("pt_glwe_ct_add 4");
+
+        prop_assert_eq!(decripted_sum, expected_sum);
 
     }
 }
