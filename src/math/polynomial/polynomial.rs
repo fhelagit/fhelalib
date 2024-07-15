@@ -115,7 +115,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn add(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         let mut sums = [0; ORDER].to_vec();
-        dbg!(&sums);
+       // dbg!(&sums);
 
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
@@ -162,7 +162,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
     fn pt_add_polynomial_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
-        const ORDER: usize = 1000;
+
         let a: Vec<u64> = poly_a.coeffs();
         let b: Vec<u64> = poly_b.coeffs();
         let sum = a
@@ -176,7 +176,7 @@ proptest! {
 
     #[test]
     fn pt_add_polynomial_1(poly_a in any::<Polynomial::<1>>(), poly_b in any::<Polynomial::<1>>()) {
-        const ORDER: usize = 1;
+
         let a: Vec<u64> = poly_a.coeffs();
         let b: Vec<u64> = poly_b.coeffs();
         let sum = a
@@ -199,7 +199,6 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
     fn pt_sub_polynomial_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
-        const ORDER: usize = 1000;
         let a: Vec<u64> = poly_a.coeffs();
         let b: Vec<u64> = poly_b.coeffs();
         let sum = a
@@ -213,7 +212,6 @@ proptest! {
 
     #[test]
     fn pt_sub_polynomial_1(poly_a in any::<Polynomial::<1>>(), poly_b in any::<Polynomial::<1>>()) {
-        const ORDER: usize = 1;
         let a: Vec<u64> = poly_a.coeffs();
         let b: Vec<u64> = poly_b.coeffs();
         let sum = a

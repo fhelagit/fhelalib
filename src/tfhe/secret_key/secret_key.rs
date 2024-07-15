@@ -2,7 +2,7 @@
 
 use crate::math::polynomial::polynomial::Polynomial;
 use crate::random::random::rnd_u64_gausean;
-use crate::tfhe::GLWE::GLWECiphertext;
+use crate::tfhe::glwe::GLWECiphertext;
 use crate::{
     // math::polynomial::polynomial::Polynomial, 
     random::random::rnd_u64_uniform_binary,
@@ -59,7 +59,7 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
        // dbg!(self.0);
         // создать полиномы ашки
         let mut a_s: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE);
-        for _ in 0..P::MASK_SIZE {
+        for _ in 0..P::MASK_SIZE { 
             let mut a_i: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); 
             for _ in 0..P::POLINOMIAL_SIZE {
                 a_i.push(rnd_u64_uniform());
@@ -67,7 +67,7 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
 
             a_s.push(Polynomial::new(a_i));
         }
-            dbg!(&a_s);
+        dbg!(&a_s);
         // посчитать мультисумму
         let mut multysum = Polynomial::<{P::POLINOMIAL_SIZE}>::new([0 ; P::POLINOMIAL_SIZE].to_vec());
         for i in 0..P::MASK_SIZE {
@@ -208,16 +208,16 @@ proptest! {
         let encripted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&a));
         let encripted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&b));
         println!("pt_glwe_ct_sub 1");
-        let sum = dbg!(&encripted_a) - &encripted_b;
+        let diff = dbg!(&encripted_a) - &encripted_b;
         println!("pt_glwe_ct_sub 2");
 
         //здесь
-        let decripted_sum = sk.decript(dbg!(&sum));
+        let decripted_diff = sk.decript(dbg!(&diff));
         println!("pt_glwe_ct_sub 3");
-        let expected_sum = dbg!(&a) - dbg!(&b);
+        let expected_diff = dbg!(&a) - dbg!(&b);
         println!("pt_glwe_ct_sub 4");
 
-        prop_assert_eq!(decripted_sum, expected_sum);
+        prop_assert_eq!(decripted_diff, expected_diff);
 
     }
 }
