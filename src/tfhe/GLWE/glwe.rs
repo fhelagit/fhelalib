@@ -112,6 +112,20 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Add<&GLWECiphertext<S, P>> for &GL
     }
 }
 
+impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Sub<&GLWECiphertext<S, P>> for &GLWECiphertext<S, P> where [(); {P::POLINOMIAL_SIZE}]: Sized {
+    type Output = GLWECiphertext<S, P>;
+
+    fn sub(self, rhs: &GLWECiphertext<S, P>) -> GLWECiphertext<S, P> {
+        let mut sums: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE+1);
+
+        println!("P::MASK_SIZE: {}", P::MASK_SIZE);
+        for i in 0..(P::MASK_SIZE+1) {
+            sums.push(&self.get_poly_by_index(i) - &rhs.get_poly_by_index(i));
+        }
+        GLWECiphertext::<S, P>::from_polynomial_list(from_poly_list::from(sums))
+    }
+}
+
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]

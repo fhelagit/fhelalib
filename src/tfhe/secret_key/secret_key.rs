@@ -50,13 +50,22 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
     fn encript(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>) -> GLWECiphertext<S, P> {
 
         // создать полином шума
-        let e = [rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec(); 
+        let mut e: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); //[rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec(); 
+        for _ in 0..P::POLINOMIAL_SIZE {
+            e.push(rnd_u64_gausean());
+        }
+
         let err = Polynomial::<{P::POLINOMIAL_SIZE}>::new(dbg!(e));
        // dbg!(self.0);
         // создать полиномы ашки
         let mut a_s: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE);
         for _ in 0..P::MASK_SIZE {
-            a_s.push(Polynomial::new([rnd_u64_uniform(); P::POLINOMIAL_SIZE].to_vec()));
+            let mut a_i: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); 
+            for _ in 0..P::POLINOMIAL_SIZE {
+                a_i.push(rnd_u64_uniform());
+            }
+
+            a_s.push(Polynomial::new(a_i));
         }
             dbg!(&a_s);
         // посчитать мультисумму
@@ -180,6 +189,33 @@ proptest! {
         println!("pt_glwe_ct_add 3");
         let expected_sum = dbg!(&a) + dbg!(&b);
         println!("pt_glwe_ct_add 4");
+
+        prop_assert_eq!(decripted_sum, expected_sum);
+
+    }
+}
+
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_glwe_ct_sub(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())), 
+                      b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())))  {
+
+        let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+
+        let encripted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&a));
+        let encripted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encript(dbg!(&b));
+        println!("pt_glwe_ct_sub 1");
+        let sum = dbg!(&encripted_a) - &encripted_b;
+        println!("pt_glwe_ct_sub 2");
+
+        //здесь
+        let decripted_sum = sk.decript(dbg!(&sum));
+        println!("pt_glwe_ct_sub 3");
+        let expected_sum = dbg!(&a) - dbg!(&b);
+        println!("pt_glwe_ct_sub 4");
 
         prop_assert_eq!(decripted_sum, expected_sum);
 
