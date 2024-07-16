@@ -47,6 +47,7 @@ where
     const GLWE_K: usize;
     const GLWE_Q: usize;
     const GLEV_B: usize;
+    const GLEV_L: usize;
     const CT_MODULUS: u64;
     type ScalarType;
     type GLWECTContainerType;
@@ -64,6 +65,7 @@ impl TFHESchema for TFHE_test_small_u64 {
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
     const GLEV_B: usize = 8;
+    const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
     type SecretKeyContainerType = Vec<Self::ScalarType>;
@@ -81,6 +83,7 @@ impl TFHESchema for TFHE_test_medium_u64 {
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
     const GLEV_B: usize = 8;
+    const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
     type SecretKeyContainerType = Vec<Self::ScalarType>;
@@ -96,10 +99,6 @@ where
   Self::ContainerType: serde::de::DeserializeOwned,
   Self::ContainerType: Index<usize, Output = Self::ScalarType>,
   Self::ContainerType: from_poly_list,
-  // Self::ContainerType: from_poly_list<1>,
-  // Self::ContainerType: from_poly_list<32>,
-  // Self::ContainerType: from_poly_list<1024>,
-  // Self::ContainerType: from_poly_list<{Self::POLINOMIAL_SIZE}>,
 
   Self::ScalarType: Clone,
   Self::ScalarType: Sized,
@@ -111,9 +110,7 @@ where
   Self::SecretKeyContainerType: Sized,
   Self::SecretKeyContainerType: serde::de::DeserializeOwned,
   Self::SecretKeyContainerType: from_poly_list,
-  // Self::SecretKeyContainerType: from_poly_list<1>,
-  // Self::SecretKeyContainerType: from_poly_list<32>,
-  // Self::SecretKeyContainerType: from_poly_list<1024>,
+
   Self::SecretKeyContainerType: Index<usize, Output = Self::ScalarType>,
   Self::HelperType: Sized,
 {
