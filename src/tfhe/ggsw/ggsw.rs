@@ -1,14 +1,13 @@
 
 use std::fmt::{self, Display};
 use std::str::FromStr;
-use std::ops;
 use crate::math::polynomial::polynomial::Polynomial;
 extern crate serde_json;
 
 #[cfg(test)]
 use proptest::prelude::*;
 
-use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, from_u64, TFHESchema, from_poly_list};
+use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Params, LWE_Params, GLWE_Params, from_u64, TFHESchema};
 
 
 #[derive(Debug, PartialEq)]

@@ -34,6 +34,15 @@ impl<const ORDER: usize> Polynomial<ORDER> {
     fn coeffs(&self) -> Vec<u64> {
         self.0.clone()
     }
+
+    pub fn new_zero() -> Self {
+        let mut d: Vec<u64> = Vec::with_capacity(ORDER);
+        for _ in 0..ORDER {
+            d.push(0);
+        }
+        Polynomial::new(d)
+
+    }
 }
 
 impl<const ORDER: usize> Index<usize> for Polynomial<ORDER> {
@@ -747,7 +756,8 @@ proptest! {
     #[test]
     fn pt_decomp_int(a in any::<u64>()) {
 
-        let dec= decomp_int::<64, 3, 8>(a);
+        let _ = decomp_int::<64, 3, 8>(a);
+  
 
         // prop_assert_eq!(poly_approximately_equial::<pwc_n>(&d_ab_c, &d_a_bc, 10000), true)
 
@@ -761,9 +771,11 @@ proptest! {
     #[test]
     fn pt_decomp_poly(a in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
 
-        let dec = decompose_polynomial::<64, 3, 8, pwc_n>(a);
+        let _ = decompose_polynomial::<64, 3, 8, pwc_n>(a);
+
 
         // prop_assert_eq!(poly_approximately_equial::<pwc_n>(&d_ab_c, &d_a_bc, 10000), true)
+
 
     }
 }
