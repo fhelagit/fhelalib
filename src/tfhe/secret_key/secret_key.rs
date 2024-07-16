@@ -119,22 +119,22 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         message
     }
 
-    fn encript_ggsw(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>) -> GGSWCiphertext<S, P> {
+    pub fn encrypt_ggsw(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>) -> GGSWCiphertext<S, P> {
 
         let mut ct_data: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity((P::MASK_SIZE+1) * S::GLEV_L*(P::MASK_SIZE+1));
 
        // получить все варианты сообщения
         for i in 0..P::MASK_SIZE {
-           self.encrypt_glev(&(message * &(&Polynomial::new_zero() - &self.get_poly_by_index(i))), &mut ct_data);
+           self.encrypt_glev(&(message * &(&Polynomial::new_zero() - &self.get_poly_by_index(i))), &mut ct_data).unwrap();
         }
         self.encrypt_glev(message, &mut ct_data).unwrap();
 
         GGSWCiphertext::from_polynomial_list(from_poly_list::from(ct_data))
     }
 
-    pub(self) fn encrypt_glev(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>, acc: &mut Vec<Polynomial<{P::POLINOMIAL_SIZE}>> ) -> Result<(), ()> {
+    fn encrypt_glev(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>, acc: &mut Vec<Polynomial<{P::POLINOMIAL_SIZE}>> ) -> Result<(), ()> {
         for i in 1..(S::GLEV_L + 1) {
-            let ct = self.encrypt(&Polynomial::new(message.into_iter().map(|v| v << S::GLWE_Q - S::GLEV_B * i).collect()));
+            let ct = self.encrypt(&Polynomial::new(message.into_iter().map(|v| v << (S::GLWE_Q - S::GLEV_B * i)).collect()));
             for i in 0..P::MASK_SIZE+1 {
                 acc.push(ct.get_poly_by_index(i));
             }
@@ -237,3 +237,20 @@ proptest! {
     }
 }
 
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+    #[test]
+    fn pt_encrypt_ggsw_callable(m in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| *vv as u64).collect()))) {
+
+       let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+       let encripted: GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(dbg!(&m));
+    //    let decripted = sk.decrypt(dbg!(&encripted));
+
+    //    prop_assert_eq!(dbg!(decripted), dbg!(m));
+      // assert_eq!(1,2);
+
+ 
+    }
+}

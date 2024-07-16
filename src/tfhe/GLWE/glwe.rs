@@ -6,6 +6,8 @@ extern crate serde_json;
 
 #[cfg(test)]
 use proptest::prelude::*;
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 
 
@@ -18,6 +20,7 @@ use crate::tfhe::schemas::{TFHE_test_medium_u64, TFHE_test_small_u64, LWE_CT_Par
 // use crate::tfhe::secret_key::GLWE_secret_key;
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct GLWECiphertext<S: TFHESchema, P: LWE_CT_Params<S>>(P::ContainerType);
 
 impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWECiphertext<S, P>
@@ -48,7 +51,6 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWECiphertext<S, P>
 
 impl<S: TFHESchema, P: LWE_CT_Params<S>> Display
     for GLWECiphertext<S, P>
-
 {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(
