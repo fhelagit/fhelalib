@@ -12,6 +12,7 @@ use proptest_derive::Arbitrary;
 
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
+use crate::tfhe::schemas::TFHESchema;
 
 // use std::marker::PhantomData;
 
@@ -663,3 +664,79 @@ impl<const ORDER: usize> IntoIterator for &Polynomial<ORDER> {
         self.0.to_vec().into_iter()
     }
 }
+
+// pub fn decompose_polynomial<const ORDER: usize>(p: Polynomial<ORDER>) -> Vec<Polynomial<ORDER>> {
+
+// }
+
+
+
+// pub fn decomp_poly<const POLY_SIZE: usize>(
+//     Poly(nums): &Poly<POLY_SIZE>,
+// ) -> ListOfPoly<POLY_SIZE, GLEV_L> {
+//     let mut a = Vec::new();
+//     for i in 0..GLEV_L {
+//         a.push([ModNumber(0); POLY_SIZE].to_vec());
+//     }
+//     let b:[Vec<ModNumber>; GLEV_L] = a.try_into().unwrap();
+//     println!("nums: {:?}", nums.coeffs());
+//     let decs = nums.coeffs()
+//         .iter()
+//         .map(|ModNumber(x)| {
+//             let dec = decomp_int(*x);
+//             println!("dec_int({}) = {:?}", x, dec);
+//             dec
+//         }
+//         )
+//         .into_iter()
+//         .enumerate()
+//         .fold(b, |acc, (i, dec_nums)| {
+//             let acc_ = acc
+//                 .iter() 
+//                 .enumerate()
+//                 .map(|(j, ns)| {
+//                     let mut ns_ = ns.clone();
+//                     // println!("ns_: {:?}", ns_);
+//                     // println!("j: {:?}", j);
+//                     ns_[i] = ModNumber(
+//                         dec_nums[j]
+//                     );
+//                     ns_
+//                 })
+//                 .collect::<Vec<Vec<ModNumber>>>().try_into().unwrap();
+//             acc_
+//             // заменить в каждом j-том полиномеме i-тый компонент на j-тый компонент dec_nums
+//         })
+//         .map(|e| Poly::new(e));
+//     ListOfPoly(decs)
+// }
+
+fn decomp_int<S:TFHESchema>(n: u64) -> [u64; S::GLEV_L] {
+    let pos = (S::GLEV_L * S::GLEV_B) as u32;
+   // dbg!(pos);
+    let bit = if pos == 64 {0} else {n & (1 << (S::GLWE_Q as u32 - pos - 1))};
+    //dbg!(bit);
+    let new_n = if bit > 0 && pos < 64 {
+        n.wrapping_add(2_u64.pow(S::GLWE_Q as u32 - pos - 1))
+    } else {
+        n
+    };
+  //  dbg!(new_n);
+    let res = (0..S::GLEV_L)
+        .into_iter()
+        .map(|i| {
+            // если первый отбрасываемый бит = 1, добавить 1
+            //
+            let l_shift = new_n << (S::GLEV_B * i);
+         //   dbg!(l_shift);
+            let r_shift = (l_shift) >> (S::GLWE_Q - S::GLEV_B);
+         //   dbg!(r_shift);
+            // dbg!(r_shift)
+            r_shift
+        })
+        .collect::<Vec<u64>>()
+        .try_into()
+        .unwrap();
+    res
+}
+
