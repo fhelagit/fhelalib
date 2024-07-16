@@ -671,72 +671,99 @@ impl<const ORDER: usize> IntoIterator for &Polynomial<ORDER> {
 
 
 
-// pub fn decomp_poly<const POLY_SIZE: usize>(
-//     Poly(nums): &Poly<POLY_SIZE>,
-// ) -> ListOfPoly<POLY_SIZE, GLEV_L> {
-//     let mut a = Vec::new();
-//     for i in 0..GLEV_L {
-//         a.push([ModNumber(0); POLY_SIZE].to_vec());
-//     }
-//     let b:[Vec<ModNumber>; GLEV_L] = a.try_into().unwrap();
-//     println!("nums: {:?}", nums.coeffs());
-//     let decs = nums.coeffs()
-//         .iter()
-//         .map(|ModNumber(x)| {
-//             let dec = decomp_int(*x);
-//             println!("dec_int({}) = {:?}", x, dec);
-//             dec
-//         }
-//         )
-//         .into_iter()
-//         .enumerate()
-//         .fold(b, |acc, (i, dec_nums)| {
-//             let acc_ = acc
-//                 .iter() 
-//                 .enumerate()
-//                 .map(|(j, ns)| {
-//                     let mut ns_ = ns.clone();
-//                     // println!("ns_: {:?}", ns_);
-//                     // println!("j: {:?}", j);
-//                     ns_[i] = ModNumber(
-//                         dec_nums[j]
-//                     );
-//                     ns_
-//                 })
-//                 .collect::<Vec<Vec<ModNumber>>>().try_into().unwrap();
-//             acc_
-//             // заменить в каждом j-том полиномеме i-тый компонент на j-тый компонент dec_nums
-//         })
-//         .map(|e| Poly::new(e));
-//     ListOfPoly(decs)
-// }
+pub fn decompose_polynomial<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize, const ORDER: usize>(p: Polynomial<ORDER>) -> Vec<Polynomial<ORDER>>
+    // where 
+    //     [(); S::GLWE_Q]: Sized,
+    //     [(); S::GLEV_L]: Sized,
+    //     [(); S::GLEV_B]: Sized,
+    {
+    let mut a = Vec::with_capacity(GLEV_L);
+    for i in 0..GLEV_L {
+        a.push([0; ORDER].to_vec());
+    }
+    //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
+    println!("nums: {:?}", p.coeffs());
+    let decs = p.coeffs()
+        .iter()
+        .map(|x| {
+            let dec = decomp_int::<{GLWE_Q}, {GLEV_L}, {GLEV_B}>(*x);
+            println!("dec_int({}) = {:?}", x, dec);
+            dec
+        }
+        )
+        .into_iter()
+        .enumerate()
+        .fold(a, |acc, (i, dec_nums)| {
+            let acc_ = acc
+                .iter() 
+                .enumerate()
+                .map(|(j, ns)| {
+                    let mut ns_ = ns.clone();
+                    // println!("ns_: {:?}", ns_);
+                    // println!("j: {:?}", j);
+                    ns_[i] = dec_nums[j];
+                    ns_
+                })
+                .collect::<Vec<Vec<u64>>>();
+            acc_
+            // заменить в каждом j-том полиномеме i-тый компонент на j-тый компонент dec_nums
+        })
+        .iter()
+        .map(|e| Polynomial::new(e.clone())).collect();
+    decs
+}
 
-fn decomp_int<S:TFHESchema>(n: u64) -> [u64; S::GLEV_L] {
-    let pos = (S::GLEV_L * S::GLEV_B) as u32;
+fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
+    let pos = (GLEV_L * GLEV_B) as u32;
    // dbg!(pos);
-    let bit = if pos == 64 {0} else {n & (1 << (S::GLWE_Q as u32 - pos - 1))};
+    let bit = if pos == 64 {0} else {n & (1 << (GLWE_Q as u32 - pos - 1))};
     //dbg!(bit);
     let new_n = if bit > 0 && pos < 64 {
-        n.wrapping_add(2_u64.pow(S::GLWE_Q as u32 - pos - 1))
+        n.wrapping_add(2_u64.pow(GLWE_Q as u32 - pos - 1))
     } else {
         n
     };
   //  dbg!(new_n);
-    let res = (0..S::GLEV_L)
+    let res = (0..GLEV_L)
         .into_iter()
         .map(|i| {
             // если первый отбрасываемый бит = 1, добавить 1
             //
-            let l_shift = new_n << (S::GLEV_B * i);
+            let l_shift = new_n << (GLEV_B * i);
          //   dbg!(l_shift);
-            let r_shift = (l_shift) >> (S::GLWE_Q - S::GLEV_B);
+            let r_shift = (l_shift) >> (GLWE_Q - GLEV_B);
          //   dbg!(r_shift);
             // dbg!(r_shift)
             r_shift
         })
-        .collect::<Vec<u64>>()
-        .try_into()
-        .unwrap();
+        .collect::<Vec<u64>>();
     res
 }
 
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_decomp_int(a in any::<u64>()) {
+
+        let dec= decomp_int::<64, 3, 8>(a);
+
+        // prop_assert_eq!(poly_approximately_equial::<pwc_n>(&d_ab_c, &d_a_bc, 10000), true)
+
+    }
+}
+
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_decomp_poly(a in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
+
+        let dec = decompose_polynomial::<64, 3, 8, pwc_n>(a);
+
+        // prop_assert_eq!(poly_approximately_equial::<pwc_n>(&d_ab_c, &d_a_bc, 10000), true)
+
+    }
+}
