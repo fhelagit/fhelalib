@@ -83,8 +83,8 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         println!("println2");
         // сложить все вместе
 
-        let b = &(dbg!(&multysum) + dbg!(&shifted_message)) + dbg!(&err);
-        a_s.push(dbg!(b));
+        let body = &(dbg!(&multysum) + dbg!(&shifted_message)) + dbg!(&err);
+        a_s.push(dbg!(body));
 
         GLWECiphertext::<S, P>::from_polynomial_list(from_poly_list::from(a_s))
     }
@@ -128,6 +128,8 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
            self.encrypt_glev(&(message * &(&Polynomial::new_zero() - &self.get_poly_by_index(i))), &mut ct_data).unwrap();
         }
         self.encrypt_glev(message, &mut ct_data).unwrap();
+
+        println!("ggsw.container.len(): {}", ct_data.len());
 
         GGSWCiphertext::from_polynomial_list(from_poly_list::from(ct_data))
     }
@@ -252,5 +254,33 @@ proptest! {
       // assert_eq!(1,2);
 
  
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+    #[test]
+    fn pt_ggsw_mul_external_expected(a in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())),
+                            b in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect()))) {
+
+        let sk: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+
+        let encripted_a: GGSWCiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(dbg!(&a));
+        let encripted_b: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&b));
+        let decripted_b = sk.decrypt(dbg!(&encripted_b));
+        prop_assert_eq!(dbg!(&decripted_b), dbg!(&b));
+
+        let expected_product =  &a * &b;
+
+        let product = dbg!(&encripted_a) * &encripted_b;
+      //  println!("pt_glwe_ct_sub 2");
+
+        let decripted_product = sk.decrypt(dbg!(&product));
+
+        prop_assert_eq!(decripted_product, expected_product);
+
+
+
     }
 }

@@ -240,7 +240,7 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         if ORDER == 1 {
-            return Polynomial::new([self[0]*rhs[0]].to_vec())
+            return Polynomial::new([self[0].wrapping_mul(rhs[0])].to_vec())
         }
         polymul_pwc_naive(self, rhs)
     }
@@ -681,13 +681,9 @@ impl<const ORDER: usize> IntoIterator for &Polynomial<ORDER> {
 
 
 pub fn decompose_polynomial<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize, const ORDER: usize>(p: Polynomial<ORDER>) -> Vec<Polynomial<ORDER>>
-    // where 
-    //     [(); S::GLWE_Q]: Sized,
-    //     [(); S::GLEV_L]: Sized,
-    //     [(); S::GLEV_B]: Sized,
     {
     let mut a = Vec::with_capacity(GLEV_L);
-    for i in 0..GLEV_L {
+    for _ in 0..GLEV_L {
         a.push([0; ORDER].to_vec());
     }
     //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
