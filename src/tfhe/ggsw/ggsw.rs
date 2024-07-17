@@ -105,22 +105,25 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&GLWECiphertext<S, P>> for &GG
     type Output = GLWECiphertext<S, P>;
 
     fn mul(self, rhs: &GLWECiphertext<S, P>) -> GLWECiphertext<S, P> {
+        println!("mul_ext: 1");
 
         let mut acc: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE + 1);
         for _ in 0..=P::MASK_SIZE {
             acc.push(Polynomial::<{P::POLINOMIAL_SIZE}>::new_zero())
         }
-       // let mut acc: GLWECiphertext<S,P> = GLWECiphertext::from_polynomial_list(from_poly_list::from(zero_data));
-
+        // let mut acc: GLWECiphertext<S,P> = GLWECiphertext::from_polynomial_list(from_poly_list::from(zero_data));
+  
 
         for glev_number in 0..=P::MASK_SIZE {
             let dec = decompose_polynomial::<{S::GLWE_Q}, {S::GLEV_L}, {S::GLEV_B}, {P::POLINOMIAL_SIZE}>(rhs.get_poly_by_index(glev_number));
+            println!("mul_ext: 2, dec: {:?}", dec);
             let offset_glev = glev_number*(S::GLEV_L*(P::MASK_SIZE+1));
 
             for glwe_number in 0..S::GLEV_L {
                 let offset_glwe = glwe_number*(P::MASK_SIZE+1);
 
                 for poly_number in 0..=P::MASK_SIZE {
+                    println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}", offset_glev, offset_glwe, poly_number);
                     acc[poly_number] = &acc[poly_number] + &(&dec[glwe_number] * &self.get_poly_by_index(offset_glev+offset_glwe+poly_number));
                 }
             }
@@ -136,10 +139,16 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&GLWECiphertext<S, P>> for &GG
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_ggsw_mul_external_callable(a in any::<GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>>(),
-        b in any::<GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>>()) {
+    fn pt_ggsw_mul_external_callable(a in any::<[u64; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE
+        *(GLWE_Params::<TFHE_test_small_u64>::MASK_SIZE+1)
+        *(GLWE_Params::<TFHE_test_small_u64>::MASK_SIZE+1)
+        *(TFHE_test_small_u64::GLEV_L)]>()
+    .prop_map(|v| GGSWCiphertext::<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>::from_polynomial_list(v.to_vec())),
+        b in any::<[u64; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE*(GLWE_Params::<TFHE_test_small_u64>::MASK_SIZE+1)]>()
+        .prop_map(|v| GLWECiphertext::<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>::from_polynomial_list(v.to_vec()))) {
 
-        &a * &b;
+        let _ = &a * &b;
 
     }
 }
+
