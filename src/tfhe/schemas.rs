@@ -6,6 +6,8 @@ use std::marker::PhantomData;
 
 use crate::math::polynomial::polynomial::Polynomial;
 use std::ops::Index;
+use std::fmt::{self, Display, Debug};
+
 
 
 
@@ -17,6 +19,7 @@ where
   Self::ScalarType: from_u64,
   Self::ScalarType: Copy,
 
+  Self::GLWECTContainerType: Debug,
   Self::GLWECTContainerType: Clone,
   Self::GLWECTContainerType: serde::ser::Serialize,
   Self::GLWECTContainerType: Sized,
@@ -59,8 +62,8 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
-    const LWE_K: usize = 2;
-    const GLWE_N: usize = 32;
+    const LWE_K: usize = 1;
+    const GLWE_N: usize = 1024;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
@@ -91,9 +94,10 @@ impl TFHESchema for TFHE_test_medium_u64 {
 }
 
 
-pub trait LWE_CT_Params<S: TFHESchema> 
+pub trait LWE_CT_Params<S: TFHESchema>
 where
   Self::ContainerType: Clone,
+  Self::ContainerType: Debug,
   Self::ContainerType: serde::ser::Serialize,
   Self::ContainerType: Sized,
   Self::ContainerType: serde::de::DeserializeOwned,

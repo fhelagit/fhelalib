@@ -64,8 +64,8 @@ impl<const ORDER: usize> Display for &Polynomial<ORDER> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(
             formatter,
-            "{}",
-            serde_json::to_string(&(*self.0).to_vec()).unwrap()
+            "{:#?}",
+            self.0//serde_json::to_string(&(*self.0).to_vec()).unwrap()
         )
         .unwrap();
         Ok(())

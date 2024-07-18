@@ -50,8 +50,9 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> Display
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(
             formatter,
-            "{}",
-            serde_json::to_string(&self.0).unwrap()
+            "{:?}",
+            // serde_json::to_string(&self.0).unwrap()
+            self.0
         )
         .unwrap();
         Ok(())
@@ -123,7 +124,7 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&GLWECiphertext<S, P>> for &GG
                 let offset_glwe = glwe_number*(P::MASK_SIZE+1);
 
                 for poly_number in 0..=P::MASK_SIZE {
-                    println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}", offset_glev, offset_glwe, poly_number);
+                    println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {}, dec[]: {}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
                     acc[poly_number] = &acc[poly_number] + &(&dec[glwe_number] * &self.get_poly_by_index(offset_glev+offset_glwe+poly_number));
                 }
             }
@@ -134,6 +135,10 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&GLWECiphertext<S, P>> for &GG
 
     }
 }
+
+// выделить отдлеьные функции умнонеия на глев и глве
+// на входе ггсв, старт и стоп позиции 
+// сделать для них отдльеные тесты
 
 #[cfg(test)]
 proptest! {
