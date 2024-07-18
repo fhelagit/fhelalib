@@ -136,10 +136,6 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&GLWECiphertext<S, P>> for &GG
     }
 }
 
-// выделить отдлеьные функции умнонеия на глев и глве
-// на входе ггсв, старт и стоп позиции 
-// сделать для них отдльеные тесты
-
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
