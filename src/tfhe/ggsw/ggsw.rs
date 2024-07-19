@@ -50,9 +50,9 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> Display
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(
             formatter,
-            "{:?}",
-            // serde_json::to_string(&self.0).unwrap()
-            self.0
+            "{}",
+            serde_json::to_string(&self.0).unwrap()
+            // self.0
         )
         .unwrap();
         Ok(())
