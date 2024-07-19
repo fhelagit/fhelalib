@@ -7,6 +7,7 @@ use crate::random::random::{rnd_u64_gausean, rnd_u64_uniform_bounded};
 use crate::tfhe::ggsw::ggsw::GGSWCiphertext;
 use crate::tfhe::glwe::GLWECiphertext;
 use crate::tfhe::server_key::cmux::cmux;
+use crate::tfhe::server_key::server_key::BootstrappingKey;
 use crate::{
     // math::polynomial::polynomial::Polynomial, 
     random::random::rnd_u64_uniform_binary,
@@ -56,7 +57,7 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         // создать полином шума
         let mut e: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); //[rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec(); 
         for _ in 0..P::POLINOMIAL_SIZE {
-            e.push(0);//rnd_u64_gausean());
+            e.push(rnd_u64_gausean());
         }
         println!("encrypt.noise: {:?}", e);
 
@@ -154,6 +155,28 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
             }
         }
         Ok(())
+    }
+
+    pub fn create_bootstrapping_key<P_old: LWE_CT_Params<S>>(self, old_key: &GLWE_secret_key<S, P_old>) -> ()
+        where 
+            [(); P_old::POLINOMIAL_SIZE]: Sized
+        {
+        let mut ggsws: Vec<GGSWCiphertext<S, P>> = Vec::with_capacity(P_old::MASK_SIZE);
+        for bit_number in 0..P_old::MASK_SIZE {
+            // let sk_bit = if oldsk[i].coeffs().len() > 0 {oldsk[i].coeffs()[0]} else {ModNumber(0)};
+            // println!("sk_bit: {}", sk_bit);
+            let mut monom_: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE);
+            for _ in 0..P::POLINOMIAL_SIZE {
+                monom_.push(0);
+            }
+            monom_[0] = old_key.get_poly_by_index(bit_number)[0];
+            let monom:Polynomial<{P::POLINOMIAL_SIZE}> = Polynomial::new(monom_);
+
+            ggsws.push(self.encrypt_ggsw(&monom));
+        }
+    
+        // let a = BootstrappingKey(ggsws);
+        // Box::new(a)
     }
 
 }
@@ -437,5 +460,19 @@ proptest! {
 
 
 
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+    #[test]
+    fn pt_create_bootstrapping_key_callable(_ in any::<bool>()) {
+
+        let old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let _ = new.create_bootstrapping_key(&old);
+
+ 
     }
 }
