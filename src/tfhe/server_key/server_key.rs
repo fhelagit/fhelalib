@@ -1,15 +1,16 @@
-use crate::tfhe::{ggsw::ggsw::GGSWCiphertext, schemas::{LWE_CT_Params, TFHESchema}};
+use crate::tfhe::{
+    ggsw::ggsw::GGSWCiphertext,
+    schemas::{LWE_CT_Params, TFHESchema},
+};
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
-pub struct BootstrappingKey<S: TFHESchema, P: LWE_CT_Params<S>>(
-    Vec<GGSWCiphertext <S, P>>,
-);
+pub struct BootstrappingKey<S: TFHESchema, P: LWE_CT_Params<S>>(Vec<GGSWCiphertext<S, P>>);
 
-impl<S: TFHESchema, P: LWE_CT_Params<S>> BootstrappingKey<S, P>{
-  pub(in crate::tfhe) fn from_vec(data:  Vec<GGSWCiphertext <S, P>>) -> Self {
-      BootstrappingKey(data)
-  }
+impl<S: TFHESchema, P: LWE_CT_Params<S>> BootstrappingKey<S, P> {
+    pub(in crate::tfhe) fn from_vec(data: Vec<GGSWCiphertext<S, P>>) -> Self {
+        BootstrappingKey(data)
+    }
 }
 
 // impl<S: TFHESchema, P: LWE_CT_Params<S>> Display

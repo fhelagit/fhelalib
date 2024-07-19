@@ -41,7 +41,6 @@ impl<const ORDER: usize> Polynomial<ORDER> {
             d.push(0);
         }
         Polynomial::new(d)
-
     }
 }
 
@@ -65,7 +64,7 @@ impl<const ORDER: usize> Display for &Polynomial<ORDER> {
         write!(
             formatter,
             "{:#?}",
-            self.0//serde_json::to_string(&(*self.0).to_vec()).unwrap()
+            self.0 //serde_json::to_string(&(*self.0).to_vec()).unwrap()
         )
         .unwrap();
         Ok(())
@@ -125,7 +124,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn add(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         let mut sums = [0; ORDER].to_vec();
-       // dbg!(&sums);
+        // dbg!(&sums);
 
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
@@ -240,7 +239,7 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         if ORDER == 1 {
-            return Polynomial::new([self[0].wrapping_mul(rhs[0])].to_vec())
+            return Polynomial::new([self[0].wrapping_mul(rhs[0])].to_vec());
         }
         polymul_pwc_naive(self, rhs)
     }
@@ -678,29 +677,33 @@ impl<const ORDER: usize> IntoIterator for &Polynomial<ORDER> {
 
 // }
 
-
-
-pub fn decompose_polynomial<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize, const ORDER: usize>(p: Polynomial<ORDER>) -> Vec<Polynomial<ORDER>>
-    {
+pub fn decompose_polynomial<
+    const GLWE_Q: usize,
+    const GLEV_L: usize,
+    const GLEV_B: usize,
+    const ORDER: usize,
+>(
+    p: Polynomial<ORDER>,
+) -> Vec<Polynomial<ORDER>> {
     let mut a = Vec::with_capacity(GLEV_L);
     for _ in 0..GLEV_L {
         a.push([0; ORDER].to_vec());
     }
     //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
     println!("nums: {:?}", p.coeffs());
-    let decs = p.coeffs()
+    let decs = p
+        .coeffs()
         .iter()
         .map(|x| {
-            let dec = decomp_int::<{GLWE_Q}, {GLEV_L}, {GLEV_B}>(*x);
+            let dec = decomp_int::<{ GLWE_Q }, { GLEV_L }, { GLEV_B }>(*x);
             println!("dec_int({}) = {:?}", x, dec);
             dec
-        }
-        )
+        })
         .into_iter()
         .enumerate()
         .fold(a, |acc, (i, dec_nums)| {
             let acc_ = acc
-                .iter() 
+                .iter()
                 .enumerate()
                 .map(|(j, ns)| {
                     let mut ns_ = ns.clone();
@@ -714,37 +717,41 @@ pub fn decompose_polynomial<const GLWE_Q: usize, const GLEV_L: usize, const GLEV
             // заменить в каждом j-том полиномеме i-тый компонент на j-тый компонент dec_nums
         })
         .iter()
-        .map(|e| Polynomial::new(e.clone())).collect();
+        .map(|e| Polynomial::new(e.clone()))
+        .collect();
     decs
 }
 
 fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
     let pos = (GLEV_L * GLEV_B) as u32;
-   // dbg!(pos);
-    let bit = if pos == 64 {0} else {n & (1 << (GLWE_Q as u32 - pos - 1))};
+    // dbg!(pos);
+    let bit = if pos == 64 {
+        0
+    } else {
+        n & (1 << (GLWE_Q as u32 - pos - 1))
+    };
     //dbg!(bit);
     let new_n = if bit > 0 && pos < 64 {
         n.wrapping_add(2_u64.pow(GLWE_Q as u32 - pos - 1))
     } else {
         n
     };
-  //  dbg!(new_n);
+    //  dbg!(new_n);
     let res = (0..GLEV_L)
         .into_iter()
         .map(|i| {
             // если первый отбрасываемый бит = 1, добавить 1
             //
             let l_shift = new_n << (GLEV_B * i);
-         //   dbg!(l_shift);
+            //   dbg!(l_shift);
             let r_shift = (l_shift) >> (GLWE_Q - GLEV_B);
-         //   dbg!(r_shift);
+            //   dbg!(r_shift);
             // dbg!(r_shift)
             r_shift
         })
         .collect::<Vec<u64>>();
     res
 }
-
 
 #[cfg(test)]
 proptest! {
@@ -753,13 +760,12 @@ proptest! {
     fn pt_decomp_int(a in any::<u64>()) {
 
         let _ = decomp_int::<64, 3, 8>(a);
-  
+
 
         // prop_assert_eq!(poly_approximately_equial::<pwc_n>(&d_ab_c, &d_a_bc, 10000), true)
 
     }
 }
-
 
 #[cfg(test)]
 proptest! {

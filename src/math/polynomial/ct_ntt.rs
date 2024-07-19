@@ -1,11 +1,10 @@
 #[allow(non_camel_case_types)]
 type ntt_data_size = u64;
-use crate::{math::modular::mod_arith::*};
+use crate::math::modular::mod_arith::*;
 #[cfg(test)]
 use proptest::prelude::*;
 #[cfg(test)]
 // use proptest_derive::Arbitrary;
-
 #[cfg(test)]
 proptest! {
   #![proptest_config(ProptestConfig::with_cases(100))]

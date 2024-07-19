@@ -6,15 +6,18 @@ use crate::math::polynomial::polynomial::Polynomial;
 use crate::random::random::{rnd_u64_gausean, rnd_u64_uniform_bounded};
 use crate::tfhe::ggsw::ggsw::GGSWCiphertext;
 use crate::tfhe::glwe::GLWECiphertext;
+use crate::tfhe::schemas::{
+    from_poly_list, from_u64, GLWE_Params, LWE_CT_Params, LWE_Params, TFHESchema,
+    TFHE_test_small_u64,
+};
 use crate::tfhe::server_key::cmux::cmux;
 use crate::tfhe::server_key::server_key::BootstrappingKey;
 use crate::{
-    // math::polynomial::polynomial::Polynomial, 
-    random::random::rnd_u64_uniform_binary,
     random::random::rnd_u64_uniform,
     // tfhe::glwe::GLWECiphertext,
+    // math::polynomial::polynomial::Polynomial,
+    random::random::rnd_u64_uniform_binary,
 };
-use crate::tfhe::schemas::{from_poly_list, from_u64, GLWE_Params, LWE_CT_Params, LWE_Params, TFHESchema, TFHE_test_small_u64};
 // use std::ops::{Index};
 
 #[cfg(test)]
@@ -23,14 +26,16 @@ use proptest::prelude::*;
 #[derive(Debug, PartialEq)]
 pub struct GLWE_secret_key<S: TFHESchema, P: LWE_CT_Params<S>>(P::SecretKeyContainerType);
 
-
-
-impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWE_secret_key<S, P> 
-where [(); P::POLINOMIAL_SIZE]:Sized {
+impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWE_secret_key<S, P>
+where
+    [(); P::POLINOMIAL_SIZE]: Sized,
+{
     pub fn new_random() -> Self {
-        let mut d: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(S::LWE_K);
+        let mut d: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(S::LWE_K);
         for _ in 0..S::LWE_K {
-            d.push(Polynomial::<{P::POLINOMIAL_SIZE}>::new([rnd_u64_uniform_binary(); P::POLINOMIAL_SIZE].to_vec()));
+            d.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new(
+                [rnd_u64_uniform_binary(); P::POLINOMIAL_SIZE].to_vec(),
+            ));
         }
         GLWE_secret_key::from_scalar_vector(from_poly_list::from(d))
     }
@@ -40,50 +45,47 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         GLWE_secret_key(data)
     }
 
-
-    pub fn get_poly_by_index(&self, ind: usize) -> Polynomial<{P::POLINOMIAL_SIZE}>{
-
+    pub fn get_poly_by_index(&self, ind: usize) -> Polynomial<{ P::POLINOMIAL_SIZE }> {
         let mut v: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE);
-        for i in 0..P::POLINOMIAL_SIZE{
-            v.push(from_u64::to(self.0[ind*P::POLINOMIAL_SIZE+i]));
+        for i in 0..P::POLINOMIAL_SIZE {
+            v.push(from_u64::to(self.0[ind * P::POLINOMIAL_SIZE + i]));
         }
-        Polynomial::<{P::POLINOMIAL_SIZE}>::new(v)
-
+        Polynomial::<{ P::POLINOMIAL_SIZE }>::new(v)
     }
 
-
-    fn encrypt(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>) -> GLWECiphertext<S, P> {
-
+    fn encrypt(&self, message: &Polynomial<{ P::POLINOMIAL_SIZE }>) -> GLWECiphertext<S, P> {
         // создать полином шума
-        let mut e: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); //[rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec(); 
+        let mut e: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); //[rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec();
         for _ in 0..P::POLINOMIAL_SIZE {
             e.push(rnd_u64_gausean());
         }
         println!("encrypt.noise: {:?}", e);
 
-        let err = Polynomial::<{P::POLINOMIAL_SIZE}>::new(e);
-       // dbg!(self.0);
+        let err = Polynomial::<{ P::POLINOMIAL_SIZE }>::new(e);
+        // dbg!(self.0);
         // создать полиномы ашки
-        let mut a_s: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity(P::MASK_SIZE);
-        for _ in 0..P::MASK_SIZE { 
-            let mut a_i: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); 
+        let mut a_s: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(P::MASK_SIZE);
+        for _ in 0..P::MASK_SIZE {
+            let mut a_i: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE);
             for _ in 0..P::POLINOMIAL_SIZE {
-                a_i.push(rnd_u64_uniform_bounded(1<<56));//rnd_u64_uniform());
+                a_i.push(rnd_u64_uniform_bounded(1 << 56)); //rnd_u64_uniform());
             }
 
             a_s.push(Polynomial::new(a_i));
         }
         println!("encrypt.a_s: {:?}", a_s);
         // посчитать мультисумму
-        let mut multysum = Polynomial::<{P::POLINOMIAL_SIZE}>::new([0 ; P::POLINOMIAL_SIZE].to_vec());
+        let mut multysum =
+            Polynomial::<{ P::POLINOMIAL_SIZE }>::new([0; P::POLINOMIAL_SIZE].to_vec());
         for i in 0..P::MASK_SIZE {
-            multysum = dbg!(&multysum) + dbg!(&(dbg!(&a_s[i]) * dbg!(&(self.get_poly_by_index(i)))));
+            multysum =
+                dbg!(&multysum) + dbg!(&(dbg!(&a_s[i]) * dbg!(&(self.get_poly_by_index(i)))));
         }
 
         println!("println1");
         // cоздать сдвинутое сообщение
         let _delta = (S::GLWE_Q - S::GLEV_B) as u32;
-        let shifted_message = message;// Polynomial::new(message.into_iter().map(|v| v.wrapping_shl(delta)).collect());
+        let shifted_message = message; // Polynomial::new(message.into_iter().map(|v| v.wrapping_shl(delta)).collect());
 
         println!("println2");
         // сложить все вместе
@@ -94,12 +96,12 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         GLWECiphertext::<S, P>::from_polynomial_list(from_poly_list::from(a_s))
     }
 
-    fn decrypt(&self, ct: &GLWECiphertext<S, P>) -> Polynomial<{P::POLINOMIAL_SIZE}> {
-
+    fn decrypt(&self, ct: &GLWECiphertext<S, P>) -> Polynomial<{ P::POLINOMIAL_SIZE }> {
         println!("decript 1");
 
         // // посчитать мультисумму
-        let mut multysum: Polynomial<{P::POLINOMIAL_SIZE}> = Polynomial::<{P::POLINOMIAL_SIZE}>::new([0 ; P::POLINOMIAL_SIZE].to_vec());
+        let mut multysum: Polynomial<{ P::POLINOMIAL_SIZE }> =
+            Polynomial::<{ P::POLINOMIAL_SIZE }>::new([0; P::POLINOMIAL_SIZE].to_vec());
         for i in 0..P::MASK_SIZE {
             multysum = &multysum + &(&ct.get_poly_by_index(i) * &(self.get_poly_by_index(i)));
         }
@@ -108,7 +110,7 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         let shifted_message = dbg!(&ct.get_poly_by_index(P::MASK_SIZE)) - dbg!(&multysum);
         println!("decript 3");
         let _delta = (S::GLWE_Q - S::GLEV_B) as u32;
-        let message = shifted_message;//Polynomial::new(dbg!(shifted_message).into_iter().map(|v| v.wrapping_shr(delta)).collect());
+        let message = shifted_message; //Polynomial::new(dbg!(shifted_message).into_iter().map(|v| v.wrapping_shr(delta)).collect());
 
         // // cоздать сдвинутое сообщение
         // let delta: u64 = 2_u64.pow((S::GLWE_Q - S::GLEV_B) as u32);
@@ -124,12 +126,15 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         message
     }
 
-    pub fn encrypt_ggsw(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>) -> GGSWCiphertext<S, P> {
-
-        let mut ct_data: Vec<Polynomial<{P::POLINOMIAL_SIZE}>> = Vec::with_capacity((P::MASK_SIZE+1) * S::GLEV_L*(P::MASK_SIZE+1));
+    pub fn encrypt_ggsw(
+        &self,
+        message: &Polynomial<{ P::POLINOMIAL_SIZE }>,
+    ) -> GGSWCiphertext<S, P> {
+        let mut ct_data: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> =
+            Vec::with_capacity((P::MASK_SIZE + 1) * S::GLEV_L * (P::MASK_SIZE + 1));
         println!("encrypt_ggsw.message: {}", message);
 
-       // получить все варианты сообщения
+        // получить все варианты сообщения
         for i in 0..P::MASK_SIZE {
             let message_ = &(message * &(&Polynomial::new_zero() - &self.get_poly_by_index(i)));
             println!("encrypt_ggsw.message_: {}", message_);
@@ -143,24 +148,36 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
         GGSWCiphertext::from_polynomial_list(from_poly_list::from(ct_data))
     }
 
-    fn encrypt_glev(&self, message: &Polynomial<{P::POLINOMIAL_SIZE}>, acc: &mut Vec<Polynomial<{P::POLINOMIAL_SIZE}>> ) -> Result<(), ()> {
+    fn encrypt_glev(
+        &self,
+        message: &Polynomial<{ P::POLINOMIAL_SIZE }>,
+        acc: &mut Vec<Polynomial<{ P::POLINOMIAL_SIZE }>>,
+    ) -> Result<(), ()> {
         println!("encrypt_glev.message: {}", message);
         for i in 1..=S::GLEV_L {
-            let message_ = &Polynomial::new(message.into_iter().map(|v| v << (S::GLWE_Q - S::GLEV_B * i)).collect());
+            let message_ = &Polynomial::new(
+                message
+                    .into_iter()
+                    .map(|v| v << (S::GLWE_Q - S::GLEV_B * i))
+                    .collect(),
+            );
             println!("encrypt_glev.message_: {}", message_);
             let ct = self.encrypt(message_);
             println!("encrypt_glev.ct: {}", ct);
-            for i in 0..P::MASK_SIZE+1 {
+            for i in 0..P::MASK_SIZE + 1 {
                 acc.push(ct.get_poly_by_index(i));
             }
         }
         Ok(())
     }
 
-    pub fn create_bootstrapping_key<P_old: LWE_CT_Params<S>>(self, old_key: &GLWE_secret_key<S, P_old>) -> ()
-        where 
-            [(); P_old::POLINOMIAL_SIZE]: Sized
-        {
+    pub fn create_bootstrapping_key<P_old: LWE_CT_Params<S>>(
+        self,
+        old_key: &GLWE_secret_key<S, P_old>,
+    ) -> ()
+    where
+        [(); P_old::POLINOMIAL_SIZE]: Sized,
+    {
         let mut ggsws: Vec<GGSWCiphertext<S, P>> = Vec::with_capacity(P_old::MASK_SIZE);
         for bit_number in 0..P_old::MASK_SIZE {
             // let sk_bit = if oldsk[i].coeffs().len() > 0 {oldsk[i].coeffs()[0]} else {ModNumber(0)};
@@ -170,15 +187,14 @@ where [(); P::POLINOMIAL_SIZE]:Sized {
                 monom_.push(0);
             }
             monom_[0] = old_key.get_poly_by_index(bit_number)[0];
-            let monom:Polynomial<{P::POLINOMIAL_SIZE}> = Polynomial::new(monom_);
+            let monom: Polynomial<{ P::POLINOMIAL_SIZE }> = Polynomial::new(monom_);
 
             ggsws.push(self.encrypt_ggsw(&monom));
         }
-    
+
         // let a = BootstrappingKey(ggsws);
         // Box::new(a)
     }
-
 }
 
 #[cfg(test)]
@@ -194,11 +210,11 @@ proptest! {
        prop_assert_eq!(dbg!(decrypted), dbg!(m));
       // assert_eq!(1,2);
 
- 
+
     }
 }
 
- #[cfg(test)]
+#[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(10))]
     #[test]
@@ -220,12 +236,11 @@ proptest! {
     }
 }
 
-
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_glwe_ct_add(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())), 
+    fn pt_glwe_ct_add(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())),
                       b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())))  {
 
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
@@ -247,12 +262,11 @@ proptest! {
     }
 }
 
-
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_glwe_ct_sub(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())), 
+    fn pt_glwe_ct_sub(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())),
                       b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())))  {
 
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
@@ -283,7 +297,6 @@ proptest! {
 //     diff
 // }
 
-
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
@@ -297,7 +310,7 @@ proptest! {
     //    prop_assert_eq!(dbg!(decripted), dbg!(m));
       // assert_eq!(1,2);
 
- 
+
     }
 }
 
@@ -313,12 +326,12 @@ proptest! {
         let encrypted_a: GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(dbg!(&a));
         let encrypted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&b));
         let decrypted_b = sk.decrypt(dbg!(&encrypted_b));
-     
+
 
         let expected_product =  &a * &b;
 
         let product = dbg!(&encrypted_a) * &encrypted_b;
-    
+
 
         let decrypted_product = sk.decrypt(dbg!(&product));
 
@@ -346,17 +359,17 @@ proptest! {
         let encrypted_a: GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(dbg!(&a));
         let encrypted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&b));
         let decrypted_b = sk.decrypt(dbg!(&encrypted_b));
-     
+
 
         let expected_product =  (&a * &b).into_iter().map(|v| (v.wrapping_shr(56)) as u8).collect::<Vec<u8>>();
 
         let product = dbg!(&encrypted_a) * &encrypted_b;
-    
+
 
        // let decrypted_product = sk.decrypt(dbg!(&product));
 
         let decrypted_product = (sk.decrypt((&product)).into_iter().map(|v| (v.wrapping_shr(56)) as u8).collect::<Vec<u8>>());
-       
+
         println!("decripted_product: {:?}, {}, {}, {}", decrypted_product[0], decrypted_product[0] == 0 , decrypted_product[0] == 255, expected_product[0] == decrypted_product[0]);
 
         let decrypted_product_0 = decrypted_product[0].clone();
@@ -390,11 +403,11 @@ proptest! {
         let encrypted_a: GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(dbg!(&a));
         let encrypted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&b));
       //  let decrypted_b = sk.decrypt(dbg!(&encrypted_b));
-     
+
 
         let expected_product =  ((&a * &b).into_iter().map(|v| (v.wrapping_shr(56)) as u8).collect::<Vec<u8>>());
         let product = (&encrypted_a) * &encrypted_b;
-    
+
 
         let decrypted_product = (sk.decrypt((&product)).into_iter().map(|v| (v.wrapping_shr(56) as u8)).collect::<Vec<u8>>());
         // println!("expected_product: {}", expected_product[0]);
@@ -425,7 +438,6 @@ proptest! {
     }
 }
 
-
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
@@ -446,12 +458,12 @@ proptest! {
         let encrypted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&a));
         let encrypted_b: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&b));
         // let decripted_b = sk.decrypt(dbg!(&encripted_b));
-     
+
 
         let expected_cmux = if cond {a} else {b};
 
         let cmux = cmux(&encrypted_cond, &encrypted_a, &encrypted_b);
-    
+
 
         let decrypted_cmux = sk.decrypt(dbg!(&cmux));
 
@@ -473,6 +485,6 @@ proptest! {
         let new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
         let _ = new.create_bootstrapping_key(&old);
 
- 
+
     }
 }
