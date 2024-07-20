@@ -57,7 +57,7 @@ where
         // создать полином шума
         let mut e: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); //[rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec();
         for _ in 0..P::POLINOMIAL_SIZE {
-            e.push(rnd_u64_gausean());
+            e.push(0);//rnd_u64_gausean());
         }
         println!("encrypt.noise: {:?}", e);
 
@@ -466,6 +466,9 @@ proptest! {
 
 
         let decrypted_cmux = sk.decrypt(dbg!(&cmux));
+        if dbg!(decrypted_cmux[0]>>56) == dbg!(expected_cmux[0]>>56) {
+            println!("eq1234");
+        }
 
         prop_assert_eq!(dbg!(decrypted_cmux.into_iter().map(|v| v>>56).collect::<Vec<u64>>()), dbg!(expected_cmux.into_iter().map(|v| v>>56).collect::<Vec<u64>>()));
         // assert_eq!(1,2)

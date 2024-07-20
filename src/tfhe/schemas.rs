@@ -57,11 +57,11 @@ pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
     const LWE_K: usize = 1;
-    const GLWE_N: usize = 32;
+    const GLWE_N: usize = 256;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
-    const GLEV_B: usize = 8;
+    const GLEV_B: usize = 6;
     const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
@@ -159,7 +159,7 @@ impl from_poly_list for Vec<u64> {
     fn from<const Order: usize>(d: Vec<Polynomial<Order>>) -> Self {
         //  let a = Vec::with_capacity(d.len()*Order);
         let a = d.iter().flatten().collect::<Vec<u64>>();
-        a
+        dbg!(a)
     }
 }
 
