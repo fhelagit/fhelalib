@@ -442,8 +442,8 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_cmux_expected(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())),
-                        b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())),
+    fn pt_cmux_expected(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 4) as u64)<<56).collect())),
+                        b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 4) as u64)<<56).collect())),
                         cond in any::<bool>()) {
 
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
@@ -452,7 +452,7 @@ proptest! {
         for _ in 0..GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE {
             cond_.push(0);
         }
-        cond_[0] = if cond {1} else {0} << 56;
+        cond_[0] = if cond {1} else {0};
 
         let encrypted_cond: GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(dbg!(&Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(cond_)));
         let encrypted_a: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&a));
@@ -460,9 +460,9 @@ proptest! {
         // let decripted_b = sk.decrypt(dbg!(&encripted_b));
 
 
-        let expected_cmux = if cond {a} else {b};
+        let expected_cmux = if cond {b} else {a};
 
-        let cmux = cmux(&encrypted_cond, &encrypted_a, &encrypted_b);
+        let cmux = cmux(&encrypted_cond, &encrypted_b, &encrypted_a);
 
 
         let decrypted_cmux = sk.decrypt(dbg!(&cmux));
