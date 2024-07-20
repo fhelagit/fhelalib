@@ -57,7 +57,7 @@ where
         // создать полином шума
         let mut e: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE); //[rnd_u64_gausean() ; P::POLINOMIAL_SIZE].to_vec();
         for _ in 0..P::POLINOMIAL_SIZE {
-            e.push(0);//rnd_u64_gausean());
+            e.push(rnd_u64_gausean());
         }
         println!("encrypt.noise: {:?}", e);
 
@@ -494,9 +494,9 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(100))]
+    #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_bootstrapping_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64) <<58 ).collect()))) {
+    fn pt_bootstrapping_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 0) as u64) <<58 ).collect()))) {
 
         let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
         println!("pt_bootstrapping_expected 1");
@@ -516,7 +516,7 @@ proptest! {
         let decrypted_message = sk_new.decrypt(dbg!(&bootstrapped_message))[0];
         println!("pt_bootstrapping_expected 6");
 
-        prop_assert_eq!(decrypted_message, expected_message)
+        prop_assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
         // assert_eq!(1,2)
 
 
