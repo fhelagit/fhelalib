@@ -172,9 +172,9 @@ where
     }
 
     pub fn create_bootstrapping_key<P_old: LWE_CT_Params<S>>(
-        self,
+        &self,
         old_key: &GLWE_secret_key<S, P_old>,
-    ) -> ()
+    ) -> BootstrappingKey<S, P_old, P>
     where
         [(); P_old::POLINOMIAL_SIZE]: Sized,
     {
@@ -192,7 +192,7 @@ where
             ggsws.push(self.encrypt_ggsw(&monom));
         }
 
-        // let a = BootstrappingKey(ggsws);
+        BootstrappingKey::from_vec(ggsws)
         // Box::new(a)
     }
 }
@@ -484,6 +484,38 @@ proptest! {
         let old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
         let new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
         let _ = new.create_bootstrapping_key(&old);
+
+
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+    #[test]
+    fn pt_bootstrapping_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect()))) {
+
+        let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+        println!("pt_bootstrapping_expected 1");
+        let sk_new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
+        println!("pt_bootstrapping_expected 2");
+        let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message);
+        println!("pt_bootstrapping_expected 3");
+        let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
+        println!("pt_bootstrapping_expected 4");
+        let bootstrapped_message: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = bsk.bootstrap(dbg!(&encrypted_message));
+        println!("pt_bootstrapping_expected 5");
+        // let decripted_b = sk.decrypt(dbg!(&encripted_b));
+
+
+        let expected_message = message[0];
+
+        let decrypted_message = sk_new.decrypt(dbg!(&bootstrapped_message))[0];
+        println!("pt_bootstrapping_expected 6");
+
+        prop_assert_eq!(decrypted_message, expected_message)
+        // assert_eq!(1,2)
+
 
 
     }
