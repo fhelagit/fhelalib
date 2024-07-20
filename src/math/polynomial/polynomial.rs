@@ -25,7 +25,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial(data)
     }
     #[allow(dead_code)]
-    fn new_monomial(value: u64, position: usize) -> Self {
+    pub fn new_monomial(value: u64, position: usize) -> Self {
         let mut d = [0; ORDER].to_vec();
         d[position] = value;
         Polynomial(d)
