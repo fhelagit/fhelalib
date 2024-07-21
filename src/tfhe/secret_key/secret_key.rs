@@ -34,7 +34,7 @@ where
         let mut d: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(S::LWE_K);
         for _ in 0..S::LWE_K {
             d.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new(
-                [rnd_u64_uniform_binary(); P::POLINOMIAL_SIZE].to_vec(),
+                [from_u64::to(P::random_scalar_key()); P::POLINOMIAL_SIZE].to_vec(),
             ));
         }
         GLWE_secret_key::from_scalar_vector(from_poly_list::from(d))
@@ -57,7 +57,7 @@ where
         // создать полином шума
         let mut err = Polynomial::<{P::POLINOMIAL_SIZE}>::new_zero(); 
         for elem_number in 0..P::POLINOMIAL_SIZE {
-            err[elem_number] = rnd_u64_gausean();
+            err[elem_number] = from_u64::to(P::random_scalar_noise());
         }
         println!("encrypt.noise: {:?}", err);
 
@@ -67,7 +67,7 @@ where
         for _poly_number in 0..P::MASK_SIZE {
             let mut a_i = Polynomial::<{P::POLINOMIAL_SIZE}>::new_zero();
             for elem_number in 0..P::POLINOMIAL_SIZE {
-                a_i[elem_number] = rnd_u64_uniform_bounded(1<<56); //rnd_u64_uniform();
+                a_i[elem_number] = from_u64::to(P::random_scalar_mask());
             }
 
             a_s.push(a_i);
@@ -75,7 +75,7 @@ where
         println!("encrypt.a_s: {:?}", a_s);
         // посчитать мультисумму
         let mut multysum =
-            Polynomial::<{ P::POLINOMIAL_SIZE }>::new([0; P::POLINOMIAL_SIZE].to_vec());
+            Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
         for i in 0..P::MASK_SIZE {
             multysum =
                 dbg!(&multysum) + dbg!(&(dbg!(&a_s[i]) * dbg!(&(self.get_poly_by_index(i)))));
@@ -100,7 +100,7 @@ where
 
         // // посчитать мультисумму
         let mut multysum: Polynomial<{ P::POLINOMIAL_SIZE }> =
-            Polynomial::<{ P::POLINOMIAL_SIZE }>::new([0; P::POLINOMIAL_SIZE].to_vec());
+            Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
         for i in 0..P::MASK_SIZE {
             multysum = &multysum + &(&ct.get_poly_by_index(i) * &(self.get_poly_by_index(i)));
         }
@@ -194,13 +194,13 @@ where
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_encrypt_invertable(m in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| *vv as u64).collect()))) {
+    fn pt_encrypt_invertable(m in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv as u64) << 58).collect()))) {
 
        let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
        let encrypted: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(dbg!(&m));
        let decrypted = sk.decrypt(dbg!(&encrypted));
 
-       prop_assert_eq!(dbg!(decrypted), dbg!(m));
+       prop_assert_eq!(dbg!(decrypted.into_iter().map(|v| v>>58).collect::<Vec<u64>>()), dbg!(m.into_iter().map(|v| v>>58).collect::<Vec<u64>>()));
       // assert_eq!(1,2);
 
 
