@@ -32,11 +32,11 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> GGSWCiphertext<S, P> {
     }
 
     pub fn get_poly_by_index(&self, ind: usize) -> Polynomial<{ P::POLINOMIAL_SIZE }> {
-        let mut v: Vec<u64> = Vec::with_capacity(P::POLINOMIAL_SIZE);
+        let mut v = Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
         for i in 0..P::POLINOMIAL_SIZE {
-            v.push(from_u64::to(self.0[ind * P::POLINOMIAL_SIZE + i]));
+            v[i] = from_u64::to(self.0[ind * P::POLINOMIAL_SIZE + i]);
         }
-        Polynomial::<{ P::POLINOMIAL_SIZE }>::new(v)
+        v
     }
 }
 
