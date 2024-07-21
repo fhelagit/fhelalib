@@ -22,13 +22,14 @@ pub struct Polynomial<const ORDER: usize>(Vec<u64>);
 
 impl<const ORDER: usize> Polynomial<ORDER> {
     pub fn new(data: Vec<u64>) -> Self {
+        assert_eq!(ORDER, data.len(), "Attempt to create polynomial with order {} from vector with lenght {}", ORDER, data.len());
         Polynomial(data)
     }
     #[allow(dead_code)]
     pub fn new_monomial(value: u64, position: usize) -> Self {
-        let mut d = [0; ORDER].to_vec();
-        d[position] = value;
-        Polynomial(d)
+        let mut p = Polynomial::<ORDER>::new_zero();
+        p[position] = value;
+        p
     }
 
     fn coeffs(&self) -> Vec<u64> {
@@ -239,7 +240,7 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         if ORDER == 1 {
-            return Polynomial::new([self[0].wrapping_mul(rhs[0])].to_vec());
+            return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
         }
         polymul_pwc_naive(self, rhs)
     }
@@ -380,7 +381,7 @@ proptest! {
 
         const n: usize = nwc_n;
         let a = a_.clone();
-        let mut b = Polynomial::<nwc_n>::new([0; n].to_vec());
+        let mut b = Polynomial::<nwc_n>::new_zero();
         b[0] = 1;
 
 
@@ -397,7 +398,7 @@ proptest! {
     fn pt_polymul_nwc_absorbent_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
         const n: usize = nwc_n;
         let a = a_.clone();
-        let b = Polynomial::<nwc_n>::new([0; n].to_vec());
+        let b = Polynomial::<nwc_n>::new_zero();
 
         let c = polymul_nwc(&a, &b);
         prop_assert_eq!(c, b)
@@ -575,7 +576,7 @@ proptest! {
 
         const n: usize = pwc_n;
         let a = a_.clone();
-        let mut b = Polynomial::<pwc_n>::new([0; n].to_vec());
+        let mut b = Polynomial::<pwc_n>::new_zero();
         b[0] = 1;
 
 
@@ -592,7 +593,7 @@ proptest! {
     fn pt_polymul_pwc_absorbent_element(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
         const n: usize = pwc_n;
         let a = a_.clone();
-        let b = Polynomial::<pwc_n>::new([0; n].to_vec());
+        let b = Polynomial::<pwc_n>::new_zero();
 
         let c = polymul_pwc(&a, &b);
         prop_assert_eq!(c, b)
@@ -687,7 +688,7 @@ pub fn decompose_polynomial<
 ) -> Vec<Polynomial<ORDER>> {
     let mut a = Vec::with_capacity(GLEV_L);
     for _ in 0..GLEV_L {
-        a.push([0; ORDER].to_vec());
+        a.push(Polynomial::<ORDER>::new_zero());
     }
     //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
     println!("nums: {:?}", p.coeffs());
