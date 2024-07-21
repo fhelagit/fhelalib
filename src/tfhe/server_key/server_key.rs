@@ -30,7 +30,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
       let lut__: Vec<u64> = (0..2_u64.pow(S::GLEV_B as u32))
           .flat_map(|e| (0..(P_glwe::POLINOMIAL_SIZE as u64 >> S::GLEV_B )).map(move |_a| (e)))
         .collect();
-      lut_.push(Polynomial::<{P_glwe::POLINOMIAL_SIZE}>::new(dbg!(lut__)));
+      lut_.push(Polynomial::<{P_glwe::POLINOMIAL_SIZE}>::new(lut__));
       println!("bootstrap 2: lut_ : {:?}", lut_);
 
 
@@ -41,7 +41,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
       println!("bootstrap 4");
 
       let body = Polynomial::<{P_glwe::POLINOMIAL_SIZE}>::new_monomial(1, P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize);
-      lut = &lut * dbg!(&body);
+      lut = &lut * &body;
       println!("bootstrap 5");
 
 

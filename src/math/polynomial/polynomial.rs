@@ -126,7 +126,7 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
     fn add(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         let mut sums = [0; ORDER].to_vec();
-        // dbg!(&sums);
+
 
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
@@ -519,7 +519,7 @@ fn polymul_pwc<const ORDER: usize>(
 
     // mod switch back
 
-    let c: Vec<u64> = dbg!(c_regular_form)
+    let c: Vec<u64> = c_regular_form
         .iter()
         .map(|v| mod_switch(*v, q, u64::MAX))
         .collect();
@@ -726,29 +726,28 @@ pub fn decompose_polynomial<
 
 fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
     let pos = (GLEV_L * GLEV_B) as u32;
-    // dbg!(pos);
+  
     let bit = if pos == 64 {
         0
     } else {
         n & (1 << (GLWE_Q as u32 - pos - 1))
     };
-    //dbg!(bit);
+ 
     let new_n = if bit > 0 && pos < 64 {
         n.wrapping_add(2_u64.pow(GLWE_Q as u32 - pos - 1))
     } else {
         n
     };
-    //  dbg!(new_n);
+ 
     let res = (0..GLEV_L)
         .into_iter()
         .map(|i| {
             // если первый отбрасываемый бит = 1, добавить 1
             //
             let l_shift = new_n << (GLEV_B * i);
-            //   dbg!(l_shift);
+  
             let r_shift = (l_shift) >> (GLWE_Q - GLEV_B);
-            //   dbg!(r_shift);
-            // dbg!(r_shift)
+ 
             r_shift
         })
         .collect::<Vec<u64>>();

@@ -5,7 +5,7 @@ pub fn rounded_div(dividend: u64, divisor: u64) -> u64 {
     // if dividend ^ divisor >= 0 {
     // println!("dividend: {:#x?}", dividend);
     // println!("divisor: {:#x?}", divisor);
-    (dbg!((dividend).wrapping_add(dbg!(divisor / 2)))).wrapping_div(divisor)
+    ((dividend).wrapping_add(divisor / 2)).wrapping_div(divisor)
     // } else {
     //     // println!("2");
     //     (dividend.wrapping_sub(divisor / 2)) / divisor
