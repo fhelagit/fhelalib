@@ -186,7 +186,6 @@ where
         }
 
         BootstrappingKey::from_vec(ggsws)
-        // Box::new(a)
     }
 }
 
@@ -478,7 +477,7 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_bootstrapping_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 4) as u64) <<58 ).collect()))) {
+    fn pt_bootstrapping_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 4) as u64) <<60 ).collect()))) {
 
         let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = dbg!(GLWE_secret_key::new_random());
         println!("pt_bootstrapping_expected 1");
@@ -493,13 +492,13 @@ proptest! {
         // let decripted_b = sk.decrypt(dbg!(&encripted_b));
 
 
-        let expected_message = message[0]>>58;
+        let expected_message = message[0]>>60;
 
         let decrypted_message = sk_new.decrypt(dbg!(&bootstrapped_message))[0];
         println!("pt_bootstrapping_expected 6");
 
-        // prop_assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
-        assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
+        prop_assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
+        // assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
         // assert_eq!(1,2)
 
 
