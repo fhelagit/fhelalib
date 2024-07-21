@@ -28,6 +28,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
     #[allow(dead_code)]
     pub fn new_monomial(value: u64, position: usize) -> Self {
         let mut p = Polynomial::<ORDER>::new_zero();
+        assert!(ORDER > position, "Attempt to create monomial with order {} and degree {position}", ORDER);
         p[position] = value;
         p
     }
@@ -688,7 +689,7 @@ pub fn decompose_polynomial<
 ) -> Vec<Polynomial<ORDER>> {
     let mut a = Vec::with_capacity(GLEV_L);
     for _ in 0..GLEV_L {
-        a.push(Polynomial::<ORDER>::new_zero());
+        a.push([0;ORDER].to_vec());
     }
     //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
     println!("nums: {:?}", p.coeffs());
