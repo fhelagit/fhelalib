@@ -65,7 +65,7 @@ impl<const ORDER: usize> Display for &Polynomial<ORDER> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(
             formatter,
-            "{:#?}",
+            "{:?}",
             self.0 //serde_json::to_string(&(*self.0).to_vec()).unwrap()
         )
         .unwrap();
@@ -692,13 +692,13 @@ pub fn decompose_polynomial<
         a.push([0;ORDER].to_vec());
     }
     //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
-    println!("nums: {:?}", p.coeffs());
+    // println!("nums: {:?}", p.coeffs());
     let decs = p
         .coeffs()
         .iter()
         .map(|x| {
             let dec = decomp_int::<{ GLWE_Q }, { GLEV_L }, { GLEV_B }>(*x);
-            println!("dec_int({}) = {:?}", x, dec);
+            // println!("dec_int({}) = {:?}", x, dec);
             dec
         })
         .into_iter()

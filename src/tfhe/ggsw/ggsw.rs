@@ -99,7 +99,7 @@ where
     type Output = GLWECiphertext<S, P>;
 
     fn mul(self, rhs: &GLWECiphertext<S, P>) -> GLWECiphertext<S, P> {
-        println!("mul_ext: 1");
+        // println!("mul_ext: 1");
 
         let mut acc: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(P::MASK_SIZE + 1);
         for _ in 0..=P::MASK_SIZE {
@@ -114,14 +114,14 @@ where
                 { S::GLEV_B },
                 { P::POLINOMIAL_SIZE },
             >(rhs.get_poly_by_index(glev_number));
-            println!("mul_ext: 2, dec: {:?}", dec);
+            // println!("mul_ext: 2, dec: {:?}", dec);
             let offset_glev = glev_number * (S::GLEV_L * (P::MASK_SIZE + 1));
 
             for glwe_number in 0..S::GLEV_L {
                 let offset_glwe = glwe_number * (P::MASK_SIZE + 1);
 
                 for poly_number in 0..=P::MASK_SIZE {
-                    println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {}, dec[]: {}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
+                    // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
                     acc[poly_number] = &acc[poly_number]
                         + &(&dec[glwe_number]
                             * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));

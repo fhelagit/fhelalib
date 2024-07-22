@@ -20,7 +20,7 @@ use crate::tfhe::schemas::{
 
 // use crate::tfhe::secret_key::GLWE_secret_key;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct GLWECiphertext<S: TFHESchema, P: LWE_CT_Params<S>>(P::ContainerType);
 
