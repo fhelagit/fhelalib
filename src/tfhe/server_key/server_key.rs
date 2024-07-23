@@ -32,10 +32,13 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
           .flat_map(|e| (0..(P_glwe::POLINOMIAL_SIZE as u64 >> S::GLEV_B )).map(move |_a| (e << (S::GLWE_Q-S::GLEV_B))))
         .collect();
       lut_.push(Polynomial::<{P_glwe::POLINOMIAL_SIZE}>::new(lut__));
+      
       println!("bootstrap 2: lut_ : {:?}", lut_);
-
-
+      
+      
       let mut lut: GLWECiphertext<S, P_glwe> = GLWECiphertext::<S, P_glwe>::from_polynomial_list(from_poly_list::from(lut_));
+      let lut_shift = Polynomial::new_monomial(1,  P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::GLEV_B) >> 1));
+      lut = &lut * &lut_shift;
       cts.push(("lut initial".to_string(), lut.clone()));
       println!("bootstrap 3");
 
@@ -49,15 +52,17 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
 
 
       for i in 0..P_lwe::MASK_SIZE {
-        let a_i_ = mod_switch(ct.get_poly_by_index(i)[0], u64::MAX, P_glwe::POLINOMIAL_SIZE as u64);
+        cts.push((format!("lut before ___[{i}]").to_string(), lut.clone()));
+        let a_i_ = mod_switch(ct.get_poly_by_index(i)[0], u64::MAX, P_glwe::POLINOMIAL_SIZE as u64);//(ct.get_poly_by_index(i)[0] >> (64-7+3)) << 3;//mod_switch(ct.get_poly_by_index(i)[0], u64::MAX, P_glwe::POLINOMIAL_SIZE as u64);
         let a_i = Polynomial::<{P_glwe::POLINOMIAL_SIZE}>::new_monomial(1, a_i_ as usize);
         println!("bootstrap 6");
         let lut_rotated = &lut * &a_i;
         cts.push((format!("lut rotated  a[{i}]").to_string(), lut_rotated.clone()));
-        println!("bootstrap 7: ct.a[i]: {}, switched: {}", ct.get_poly_by_index(i)[0],  mod_switch(ct.get_poly_by_index(i)[0], u64::MAX, P_glwe::POLINOMIAL_SIZE as u64));
+        println!("bootstrap 7: ct.a[i]: {}, switched: {}", ct.get_poly_by_index(i)[0],  a_i_);
 
-        lut = cmux(&self.key[i], &lut_rotated, &lut);
-        cts.push((format!("lut after ____[{i}]").to_string(), cmux(&self.key[i], &lut_rotated, &lut)));
+        cts.push((format!("lut after ____[{i}]").to_string(), cmux(&self.key[i], &lut_rotated, &lut.clone())));
+        lut = cmux(&self.key[i], &lut_rotated, &lut.clone());
+       // println!("bootstrap 7/5: lut[{i}]: {}, cmux: {}", lut,  cmux(&self.key[i], &lut_rotated, &lut.clone()));
         cts.push((format!("lut after cmux[{i}]").to_string(), lut.clone()));
 
       }
