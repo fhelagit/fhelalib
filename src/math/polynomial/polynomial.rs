@@ -44,6 +44,13 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         }
         Polynomial::new(d)
     }
+
+    pub fn shr(&self, steps: usize) -> Self {
+        Polynomial::new(self.0.iter().map(|v| v >> steps).collect())
+    }
+    pub fn shl(&self, steps: usize) -> Self {
+        Polynomial::new(self.0.iter().map(|v| v << steps).collect())
+    }
 }
 
 impl<const ORDER: usize> Index<usize> for Polynomial<ORDER> {
