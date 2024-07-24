@@ -26,6 +26,7 @@ where
     Self::GLWECTContainerType: Index<usize, Output = Self::ScalarType>,
 
     Self::SecretKeyContainerType: Clone,
+    Self::SecretKeyContainerType: from_u64_vector,
     Self::SecretKeyContainerType: serde::ser::Serialize,
     Self::SecretKeyContainerType: Sized,
     Self::SecretKeyContainerType: serde::de::DeserializeOwned,
@@ -103,6 +104,7 @@ where
     Self::ScalarType: Copy,
 
     Self::SecretKeyContainerType: Clone,
+    Self::SecretKeyContainerType: from_u64_vector,
     Self::SecretKeyContainerType: serde::ser::Serialize,
     Self::SecretKeyContainerType: Sized,
     Self::SecretKeyContainerType: serde::de::DeserializeOwned,
@@ -137,7 +139,7 @@ impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params<S> {
     type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
     fn random_scalar_mask() -> Self::ScalarType {
     //    from_u64::from(rnd_u64_uniform_bounded(1<<60))
-       from_u64::from(rnd_u64_uniform())
+        from_u64::from(rnd_u64_uniform())
         // from_u64::from(0)
     }
     fn random_scalar_noise () -> Self::ScalarType {
@@ -166,7 +168,32 @@ impl<S: TFHESchema> LWE_CT_Params<S> for GLWE_Params<S> {
         from_u64::from(rnd_u64_uniform())
     }
     fn random_scalar_noise () -> Self::ScalarType {
-       from_u64::from(rnd_u64_gausean())
+        from_u64::from(rnd_u64_gausean())
+        // from_u64::from(0)
+    }
+    fn random_scalar_key () -> Self::ScalarType {
+        from_u64::from(rnd_u64_uniform_binary())
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct LWE_Params_after_extraction<S: TFHESchema> {
+    phantom: PhantomData<S>,
+}
+
+impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params_after_extraction<S> {
+    const MASK_SIZE: usize = S::GLWE_K*S::GLWE_N;
+    const POLINOMIAL_SIZE: usize = 1;
+    type ScalarType = S::ScalarType;
+    type ContainerType = S::GLWECTContainerType;
+    type SecretKeyContainerType = S::SecretKeyContainerType;
+    type Schema = S;
+    type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
+    fn random_scalar_mask() -> Self::ScalarType {
+        from_u64::from(rnd_u64_uniform())
+    }
+    fn random_scalar_noise () -> Self::ScalarType {
+        from_u64::from(rnd_u64_gausean())
         // from_u64::from(0)
     }
     fn random_scalar_key () -> Self::ScalarType {
@@ -185,6 +212,20 @@ impl from_poly_list for Vec<u64> {
     fn from<const Order: usize>(d: Vec<Polynomial<Order>>) -> Self {
         let a = d.iter().flatten().collect::<Vec<u64>>();
         a
+    }
+}
+
+pub trait from_u64_vector {
+    fn from(d: Vec<u64>) -> Self;
+    fn to(d: Self) -> Vec<u64>;
+}
+
+impl from_u64_vector for Vec<u64> {
+    fn from(d: Vec<u64>) -> Self {
+        d
+    }
+    fn to(d: Self) -> Vec<u64> {
+        d
     }
 }
 
