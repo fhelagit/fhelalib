@@ -11,7 +11,7 @@ use crate::tfhe::schemas::{
 };
 use crate::tfhe::server_key::cmux::cmux;
 use crate::tfhe::server_key::extract_sample::extract_sample;
-use crate::tfhe::server_key::server_key::BootstrappingKey;
+use crate::tfhe::server_key::server_key::{BootstrappingKey, KeyswitchingKey};
 use crate::{
     random::random::rnd_u64_uniform,
     // tfhe::glwe::GLWECiphertext,
@@ -199,6 +199,33 @@ where
 
         BootstrappingKey::from_vec(ggsws)
     }
+
+    pub fn create_keyswitching_key<P_old: LWE_CT_Params<S>>(
+        &self,
+        old_key: &GLWE_secret_key<S, P_old>
+    ) -> KeyswitchingKey<S, P_old, P> 
+    where
+        [(); P_old::POLINOMIAL_SIZE]: Sized,
+        {
+        assert_eq!(P_old::POLINOMIAL_SIZE, 1);
+        assert_eq!(P::POLINOMIAL_SIZE, 1);
+        let mut ct_data: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> =
+            Vec::with_capacity((P::MASK_SIZE + 1) * S::GLEV_L * (P::MASK_SIZE + 1));
+
+
+        for elem_number in 0..P::MASK_SIZE {
+            let key_bit_ = old_key.get_poly_by_index(elem_number)[0];
+            let key_bit = Polynomial::<{P::POLINOMIAL_SIZE}>::new_monomial(key_bit_, 0);
+            //println!("encrypt_ggsw.message_: {}", message_);
+            self.encrypt_glev(&key_bit, &mut ct_data).unwrap();
+            // for i in 0..=P::MASK_SIZE {
+            //     println!("encrypt_ggsw.ct_data[{i}]: {:?}", ct_data[i]);
+            // }
+        }
+
+
+        KeyswitchingKey::from_polynomial_list(from_poly_list::from(ct_data))
+    }
 }
 
 #[cfg(test)]
@@ -207,11 +234,11 @@ proptest! {
     #[test]
     fn pt_encrypt_invertable(m in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv as u64) << 58).collect()))) {
 
-       let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
-       let encrypted: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(&m);
-       let decrypted = sk.decrypt(&encrypted);
+        let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let encrypted: GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt(&m);
+        let decrypted = sk.decrypt(&encrypted);
 
-       prop_assert_eq!(decrypted.into_iter().map(|v| v>>58).collect::<Vec<u64>>(), m.into_iter().map(|v| v>>58).collect::<Vec<u64>>());
+        prop_assert_eq!(decrypted.into_iter().map(|v| v>>58).collect::<Vec<u64>>(), m.into_iter().map(|v| v>>58).collect::<Vec<u64>>());
       // assert_eq!(1,2);
 
 
@@ -313,10 +340,9 @@ proptest! {
 
     //    prop_assert_eq!(decripted, m);
       // assert_eq!(1,2);
-
-
     }
 }
+
 
 #[cfg(test)]
 proptest! {
@@ -445,7 +471,7 @@ proptest! {
         let cond_ = true;
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
 
-   
+
         let cond = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(if cond_ {1} else {0}, 0);
 
         let encrypted_cond: GGSWCiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = sk.encrypt_ggsw(&cond);
@@ -515,6 +541,20 @@ proptest! {
 
     }
 }
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+    #[test]
+    fn pt_create_keyswitching_key_callable(_ in any::<bool>()) {
+
+        let old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params_after_extraction<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let new: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let _ = new.create_keyswitching_key::<LWE_Params_after_extraction<TFHE_test_small_u64>>(&old);
+
+    }
+}
+
 
 #[cfg(test)]
 proptest! {
@@ -592,54 +632,6 @@ proptest! {
 
         prop_assert_eq!(dbg!(decrypted_extracted_message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), dbg!(message[7]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
         // assert_eq!(1,2);
-
-
-
-
-        // // расшифровать
-        // // сверить
-
-        // let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
-        // println!("pt_bootstrapping_expected 1, secret_key: {:?}, message: {:?}", sk_old, message);
-        // let sk_new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
-        // println!("pt_bootstrapping_expected 2");
-        // let mes = Polynomial::<1>::new_monomial(5<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
-        // let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message);
-        // println!("pt_bootstrapping_expected 3");
-        // let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
-        // println!("pt_bootstrapping_expected 4");
-        // let (bootstrapped_message, log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
-        // println!("pt_bootstrapping_expected 5");
-        // // let decripted_b = sk.decrypt(&encripted_b);
-
-        // let test_message = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(7<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B),0);
-        // let test_ct = sk_new.encrypt(&test_message);
-        // let test_message2 = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B),0);
-        // let test_ct2 = sk_new.encrypt(&test_message2);
-        // // let test_bsk = sk_new.create_bootstrapping_key(&sk_old);
-        // for i in 0..LWE_Params::<TFHE_test_small_u64>::MASK_SIZE {
-        //     let mul = cmux(&bsk.key[i], &test_ct, &test_ct2);//&test_bsk.key[i] * &test_ct;
-        //     println!("bit times message decrypted: {:?}", sk_new.decrypt(&mul));
-        // }
-
-
-        // let expected_message = message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B);
-
-        // let decrypted_message = sk_new.decrypt(&bootstrapped_message)[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B);
-        // println!("pt_bootstrapping_expected 6, secret_key: {:?}, message: {:?}", sk_old, message);
- 
-        // for i in 0..log_cts.len() {
-
-        //     println!("log_cts.{} decrypted: {:?}", log_cts[i].0, sk_new.decrypt(&log_cts[i].1).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
-        // }
-
-        // if dbg!(decrypted_message) != dbg!(expected_message) {
-        //     assert_eq!(1,2)
-        //     //prop_assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
-        // }
-        // // assert_eq!(decrypted_message, xpected_message);
-        // // assert_eq!(1,2)
-
 
 
     }
