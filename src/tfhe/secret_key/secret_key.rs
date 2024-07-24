@@ -31,8 +31,8 @@ where
     [(); P::POLINOMIAL_SIZE]: Sized,
 {
     pub fn new_random() -> Self {
-        let mut d: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(S::LWE_K);
-        for _ in 0..S::LWE_K {
+        let mut d: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(P::MASK_SIZE);
+        for _ in 0..P::MASK_SIZE {
             d.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new(
                 [from_u64::to(P::random_scalar_key()); P::POLINOMIAL_SIZE].to_vec(),
             ));
@@ -556,6 +556,7 @@ proptest! {
 }
 
 
+
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
@@ -633,6 +634,25 @@ proptest! {
         prop_assert_eq!(dbg!(decrypted_extracted_message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), dbg!(message[7]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
         // assert_eq!(1,2);
 
+
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+    #[test]
+    fn pt_switch_key_expected(message in any::<[u8; LWE_Params_after_extraction::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params_after_extraction::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> (8-TFHE_test_small_u64::GLEV_B)) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
+
+        let old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params_after_extraction<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let new: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let ksk = new.create_keyswitching_key::<LWE_Params_after_extraction<TFHE_test_small_u64>>(&old);
+
+        let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params_after_extraction<TFHE_test_small_u64>> = old.encrypt(&message);
+        let keyswitched_message = ksk.switch_key(&encrypted_message);
+        let decrypted_message = new.decrypt(&keyswitched_message);
+
+        prop_assert_eq!(dbg!(decrypted_message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), dbg!(message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
 
     }
 }
