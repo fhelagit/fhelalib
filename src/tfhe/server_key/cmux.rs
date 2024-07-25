@@ -4,7 +4,6 @@ use crate::tfhe::{
     glwe::GLWECiphertext,
     schemas::{LWE_CT_Params, TFHESchema},
 };
-use std::ops::Sub;
 
 pub fn cmux<S: TFHESchema, P: LWE_CT_Params<S>>(
     cond: &GGSWCiphertext<S, P>,

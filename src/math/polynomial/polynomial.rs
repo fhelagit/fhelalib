@@ -12,7 +12,7 @@ use proptest_derive::Arbitrary;
 
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
-use crate::tfhe::schemas::TFHESchema;
+
 
 // use std::marker::PhantomData;
 
@@ -291,7 +291,7 @@ fn poly_approximately_equial<const ORDER: usize>(
 }
 
 // NWC
-const nwc_n: usize = 2048;
+const nwc_n: usize = 32;
 
 fn polymul_nwc_naive<const ORDER: usize>(
     a: &Polynomial<ORDER>,
@@ -370,6 +370,22 @@ fn polymul_nwc<const ORDER: usize>(
     Polynomial::new(c)
 }
 
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_polymul_naive_expected(a_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>()))) {
+        let a = a_.clone();
+        let b = Polynomial::<nwc_n>::new_monomial(5, 0);
+
+        let c_naive = polymul_nwc_naive(&a, &b);
+        prop_assert_eq!(dbg!(Polynomial::new(a.into_iter().map(|v| v*5).collect())), dbg!(c_naive));
+        // assert_eq!(1,2)
+
+    }
+}
+
 #[cfg(test)]
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
@@ -392,7 +408,6 @@ proptest! {
     #[test]
     fn pt_polymul_nwc_neutral_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
 
-        const n: usize = nwc_n;
         let a = a_.clone();
         let mut b = Polynomial::<nwc_n>::new_zero();
         b[0] = 1;
@@ -409,7 +424,6 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     fn pt_polymul_nwc_absorbent_element(a_ in any::<[u64; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.to_vec()))) {
-        const n: usize = nwc_n;
         let a = a_.clone();
         let b = Polynomial::<nwc_n>::new_zero();
 
@@ -587,7 +601,7 @@ proptest! {
         // так как единица при модуль-свитчинге превращается в 0, то на выходе мы всегда получаем ноль.
         // Поэтому пока допустимая точность равна всему оступному диапазону чисел.
 
-        const n: usize = pwc_n;
+
         let a = a_.clone();
         let mut b = Polynomial::<pwc_n>::new_zero();
         b[0] = 1;
@@ -604,7 +618,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     fn pt_polymul_pwc_absorbent_element(a_ in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
-        const n: usize = pwc_n;
+
         let a = a_.clone();
         let b = Polynomial::<pwc_n>::new_zero();
 
@@ -746,7 +760,7 @@ fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: 
     };
  
     let new_n = if bit > 0 && pos < 64 {
-        n.wrapping_add(2_u64.pow(GLWE_Q as u32 - pos - 1))
+        n //n.wrapping_add(2_u64.pow(GLWE_Q as u32 - pos))
     } else {
         n
     };
@@ -770,7 +784,7 @@ fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_decomp_int(a in any::<u64>()) {
+    fn pt_decomp_int_callable(a in any::<u64>()) {
 
         let _ = decomp_int::<64, 3, 8>(a);
 
@@ -784,7 +798,7 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_decomp_poly(a in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
+    fn pt_decomp_poly_callable(a in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
 
         let _ = decompose_polynomial::<64, 3, 8, pwc_n>(a);
 

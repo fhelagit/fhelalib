@@ -58,12 +58,12 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
-    const LWE_K: usize = 10;
-    const GLWE_N: usize = 128;
+    const LWE_K: usize = 2;
+    const GLWE_N: usize = 32;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
-    const GLEV_B: usize = 3;
+    const GLEV_B: usize = 8;
     const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
@@ -143,8 +143,8 @@ impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params<S> {
         // from_u64::from(0)
     }
     fn random_scalar_noise () -> Self::ScalarType {
-        // from_u64::from(rnd_u64_gausean())
-        from_u64::from(0)
+        from_u64::from(rnd_u64_gausean())
+        //from_u64::from(0)
     }
     fn random_scalar_key () -> Self::ScalarType {
         from_u64::from(rnd_u64_uniform_binary())
@@ -165,7 +165,9 @@ impl<S: TFHESchema> LWE_CT_Params<S> for GLWE_Params<S> {
     type Schema = S;
     type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
     fn random_scalar_mask() -> Self::ScalarType {
-        from_u64::from(rnd_u64_uniform())
+    //    from_u64::from(rnd_u64_uniform())
+       from_u64::from(rnd_u64_uniform_bounded(1<<56))
+        // from_u64::from(0)
     }
     fn random_scalar_noise () -> Self::ScalarType {
         from_u64::from(rnd_u64_gausean())

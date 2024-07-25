@@ -15,7 +15,7 @@ pub fn extract_sample<S: TFHESchema, P_old: LWE_CT_Params<S>,  P_new: LWE_CT_Par
     sample_position: usize,
 )  -> (GLWECiphertext<S, P_new>, GLWE_secret_key<S, P_new>) 
     where 
-        [(); { P_old::POLINOMIAL_SIZE }]: Sized 
+        [(); P_old::POLINOMIAL_SIZE]: Sized 
     {
     assert_eq!(P_new::POLINOMIAL_SIZE, 1);
 
@@ -23,7 +23,7 @@ pub fn extract_sample<S: TFHESchema, P_old: LWE_CT_Params<S>,  P_new: LWE_CT_Par
 
 
     let mut a:Vec<Polynomial<1>> = Vec::with_capacity(P_old::POLINOMIAL_SIZE*P_old::MASK_SIZE);
-    for i in 0..(P_old::POLINOMIAL_SIZE*P_old::MASK_SIZE) {
+    for _ in 0..(P_old::POLINOMIAL_SIZE*P_old::MASK_SIZE) {
         a.push(Polynomial::<1>::new_zero());
     }
 

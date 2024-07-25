@@ -2,10 +2,8 @@ use crate::{math::{modular::module_switch::mod_switch, polynomial::polynomial::{
     ggsw::ggsw::GGSWCiphertext, glwe::GLWECiphertext, schemas::{from_poly_list, from_u64, LWE_CT_Params, TFHESchema}, server_key::cmux::cmux
 }};
 use std::{alloc::Layout, fmt::{self, Display}};
-use std::str::FromStr;
+// use std::str::FromStr;
 use std::marker::PhantomData;
-
-use super::cmux;
 
 pub struct BootstrappingKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>{pub key: Vec<GGSWCiphertext<S, P_glwe>>, phantom: PhantomData<P_lwe>}
 
@@ -17,8 +15,8 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
   
   pub fn bootstrap(&self, ct: &GLWECiphertext<S, P_lwe>) -> (GLWECiphertext<S, P_glwe>, Vec<(String, GLWECiphertext<S, P_glwe>)> )
   where 
-  [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
-  [(); { P_glwe::POLINOMIAL_SIZE }]: Sized,
+  [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+  [(); P_glwe::POLINOMIAL_SIZE]: Sized,
   [(); S::GLEV_B]: Sized,
   [(); S::GLWE_Q]: Sized,
   [(); S::GLEV_L]: Sized,
