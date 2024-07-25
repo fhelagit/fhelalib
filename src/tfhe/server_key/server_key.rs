@@ -102,8 +102,9 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
         for _ in 0..=P_lwe::MASK_SIZE {
             acc.push(Polynomial::<{ P_lwe::POLINOMIAL_SIZE }>::new_zero())
         }
-
+        // println!("switch_key 1");
         for glev_number in 0..P_lwe_old::MASK_SIZE {
+          // println!("switch_key 2. glev_number: {glev_number}");
             let dec = decompose_polynomial::<
                 { S::GLWE_Q },
                 { S::GLEV_L },
@@ -118,6 +119,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
 
                 for poly_number in 0..=P_lwe::MASK_SIZE {
                     // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
+                    // println!("switch_key 3. offset_glev + offset_glwe + poly_number: {}", offset_glev + offset_glwe + poly_number);
                     acc[poly_number] = &acc[poly_number]
                         + &(&dec[glwe_number].swicth_order::<{P_lwe::POLINOMIAL_SIZE}>()
                             * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
@@ -125,10 +127,13 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> Bootstrap
             }
         }
 
+       // 330 != 11*1*3*128
+
         let mut b_ct: Vec<Polynomial<{P_lwe::POLINOMIAL_SIZE}>> = Vec::with_capacity(P_lwe::MASK_SIZE+1);
         for _ in 0..P_lwe::MASK_SIZE {
           b_ct.push(Polynomial::new_zero());
         }
+        // println!("switch_key 4");
         b_ct.push(ct.get_poly_by_index(P_lwe_old::MASK_SIZE).swicth_order::<{P_lwe::POLINOMIAL_SIZE}>());
         &GLWECiphertext::from_polynomial_list(from_poly_list::from(b_ct)) - &GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
       }

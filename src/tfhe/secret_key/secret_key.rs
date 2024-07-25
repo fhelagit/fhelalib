@@ -210,10 +210,10 @@ where
         assert_eq!(P_old::POLINOMIAL_SIZE, 1);
         assert_eq!(P::POLINOMIAL_SIZE, 1);
         let mut ct_data: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> =
-            Vec::with_capacity((P::MASK_SIZE + 1) * S::GLEV_L * (P::MASK_SIZE + 1));
+            Vec::with_capacity((P::MASK_SIZE + 1) * S::GLEV_L * (P_old::MASK_SIZE));
 
 
-        for elem_number in 0..P::MASK_SIZE {
+        for elem_number in 0..P_old::MASK_SIZE {
             let key_bit_ = old_key.get_poly_by_index(elem_number)[0];
             let key_bit = Polynomial::<{P::POLINOMIAL_SIZE}>::new_monomial(key_bit_, 0);
             //println!("encrypt_ggsw.message_: {}", message_);
