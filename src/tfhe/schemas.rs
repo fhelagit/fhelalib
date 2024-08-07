@@ -3,7 +3,9 @@
 use std::marker::PhantomData;
 
 use crate::math::polynomial::polynomial::Polynomial;
-use crate::random::random::{rnd_u64_gausean, rnd_u64_uniform_binary, rnd_u64_uniform, rnd_u64_uniform_bounded};
+use crate::random::random::{
+    rnd_u64_gausean, rnd_u64_uniform, rnd_u64_uniform_binary, rnd_u64_uniform_bounded,
+};
 use std::fmt::{self, Debug, Display};
 use std::ops::Index;
 
@@ -58,12 +60,12 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
-    const LWE_K: usize = 2;
-    const GLWE_N: usize = 32;
+    const LWE_K: usize = 3;
+    const GLWE_N: usize = 1024;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
-    const GLEV_B: usize = 8;
+    const GLEV_B: usize = 6;
     const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
@@ -80,7 +82,7 @@ impl TFHESchema for TFHE_test_medium_u64 {
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
-    const GLEV_B: usize = 8;
+    const GLEV_B: usize = 6;
     const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
@@ -121,8 +123,8 @@ where
     type Schema: TFHESchema;
     type HelperType= [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
     fn random_scalar_mask() -> Self::ScalarType;
-    fn random_scalar_noise () -> Self::ScalarType;
-    fn random_scalar_key () -> Self::ScalarType;
+    fn random_scalar_noise() -> Self::ScalarType;
+    fn random_scalar_key() -> Self::ScalarType;
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct LWE_Params<S: TFHESchema> {
@@ -138,15 +140,16 @@ impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params<S> {
     type Schema = S;
     type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
     fn random_scalar_mask() -> Self::ScalarType {
-    //    from_u64::from(rnd_u64_uniform_bounded(1<<60))
-        from_u64::from(rnd_u64_uniform())
-        // from_u64::from(0)
+        //    from_u64::from(rnd_u64_uniform_bounded(1<<60))
+        // from_u64::from(rnd_u64_uniform())
+        // from_u64::from(18_446_744_073_709_551_615u64)
+        from_u64::from(0)
     }
-    fn random_scalar_noise () -> Self::ScalarType {
-        from_u64::from(rnd_u64_gausean())
-        //from_u64::from(0)
+    fn random_scalar_noise() -> Self::ScalarType {
+        // from_u64::from(rnd_u64_gausean())
+        from_u64::from(0)
     }
-    fn random_scalar_key () -> Self::ScalarType {
+    fn random_scalar_key() -> Self::ScalarType {
         from_u64::from(rnd_u64_uniform_binary())
     }
 }
@@ -165,16 +168,16 @@ impl<S: TFHESchema> LWE_CT_Params<S> for GLWE_Params<S> {
     type Schema = S;
     type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
     fn random_scalar_mask() -> Self::ScalarType {
-    //    from_u64::from(rnd_u64_uniform())
-       from_u64::from(rnd_u64_uniform_bounded(1<<56))
+        from_u64::from(rnd_u64_uniform())
+        //    from_u64::from(rnd_u64_uniform_bounded(1<<56))
         // from_u64::from(0)
     }
-    fn random_scalar_noise () -> Self::ScalarType {
-        from_u64::from(rnd_u64_gausean())
-        // from_u64::from(0)
+    fn random_scalar_noise() -> Self::ScalarType {
+        // from_u64::from(rnd_u64_gausean())
+        from_u64::from(0)
     }
-    fn random_scalar_key () -> Self::ScalarType {
-        from_u64::from(rnd_u64_uniform_binary())
+    fn random_scalar_key() -> Self::ScalarType {
+        from_u64::from(1) //rnd_u64_uniform_binary())
     }
 }
 
@@ -184,7 +187,7 @@ pub struct LWE_Params_after_extraction<S: TFHESchema> {
 }
 
 impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params_after_extraction<S> {
-    const MASK_SIZE: usize = S::GLWE_K*S::GLWE_N;
+    const MASK_SIZE: usize = S::GLWE_K * S::GLWE_N;
     const POLINOMIAL_SIZE: usize = 1;
     type ScalarType = S::ScalarType;
     type ContainerType = S::GLWECTContainerType;
@@ -194,11 +197,11 @@ impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params_after_extraction<S> {
     fn random_scalar_mask() -> Self::ScalarType {
         from_u64::from(rnd_u64_uniform())
     }
-    fn random_scalar_noise () -> Self::ScalarType {
+    fn random_scalar_noise() -> Self::ScalarType {
         from_u64::from(rnd_u64_gausean())
         // from_u64::from(0)
     }
-    fn random_scalar_key () -> Self::ScalarType {
+    fn random_scalar_key() -> Self::ScalarType {
         from_u64::from(rnd_u64_uniform_binary())
     }
 }

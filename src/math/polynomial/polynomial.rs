@@ -13,7 +13,6 @@ use proptest_derive::Arbitrary;
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
-
 // use std::marker::PhantomData;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -22,13 +21,23 @@ pub struct Polynomial<const ORDER: usize>(Vec<u64>);
 
 impl<const ORDER: usize> Polynomial<ORDER> {
     pub fn new(data: Vec<u64>) -> Self {
-        assert_eq!(ORDER, data.len(), "Attempt to create polynomial with order {} from vector with lenght {}", ORDER, data.len());
+        assert_eq!(
+            ORDER,
+            data.len(),
+            "Attempt to create polynomial with order {} from vector with lenght {}",
+            ORDER,
+            data.len()
+        );
         Polynomial(data)
     }
     #[allow(dead_code)]
     pub fn new_monomial(value: u64, position: usize) -> Self {
         let mut p = Polynomial::<ORDER>::new_zero();
-        assert!(ORDER > position, "Attempt to create monomial with order {} and degree {position}", ORDER);
+        assert!(
+            ORDER > position,
+            "Attempt to create monomial with order {} and degree {position}",
+            ORDER
+        );
         p[position] = value;
         p
     }
@@ -52,7 +61,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial::new(self.0.iter().map(|v| v << steps).collect())
     }
 
-    pub fn swicth_order<const NEW_OREDER: usize>(&self) -> Polynomial<NEW_OREDER>{
+    pub fn swicth_order<const NEW_OREDER: usize>(&self) -> Polynomial<NEW_OREDER> {
         assert_eq!(NEW_OREDER, ORDER);
         return Polynomial::<NEW_OREDER>::new(self.0.clone());
     }
@@ -139,7 +148,6 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     fn add(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         let mut sums = [0; ORDER].to_vec();
 
-
         for i in 0..ORDER {
             sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
         }
@@ -221,7 +229,8 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_sub_polynomial_1000(poly_a in any::<Polynomial::<1000>>(), poly_b in any::<Polynomial::<1000>>()) {
+    fn pt_sub_polynomial_1000(poly_a in any::<[u64; 1000]>().prop_map(|v| Polynomial::<1000>::new(v.to_vec()))
+    , poly_b in any::<[u64; 1000]>().prop_map(|v| Polynomial::<1000>::new(v.to_vec()))) {
         let a: Vec<u64> = poly_a.coeffs();
         let b: Vec<u64> = poly_b.coeffs();
         let sum = a
@@ -252,9 +261,9 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
-        if ORDER == 1 {
-            return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
-        }
+        // if ORDER == 1 {
+        //     return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
+        // }
         polymul_pwc_naive(self, rhs)
     }
 }
@@ -366,10 +375,12 @@ fn polymul_nwc<const ORDER: usize>(
             % q as u128) as u64
     }
 
-    let c: Vec<u64> = c_.iter().map(|v| mod_switch(*v, q, u64::MAX)).collect();
+    let c: Vec<u64> = c_
+        .iter()
+        .map(|v| mod_switch(*v, q as u128, 1 << 64))
+        .collect();
     Polynomial::new(c)
 }
-
 
 #[cfg(test)]
 proptest! {
@@ -521,12 +532,12 @@ fn polymul_pwc<const ORDER: usize>(
     let mut a_: Vec<u64> = a
         .coeffs()
         .iter()
-        .map(|v| mod_switch(*v, u64::MAX, q))
+        .map(|v| mod_switch(*v, 1 << 64, q as u128))
         .collect();
     let mut b_: Vec<u64> = b
         .coeffs()
         .iter()
-        .map(|v| mod_switch(*v, u64::MAX, q))
+        .map(|v| mod_switch(*v, 1 << 64, q as u128))
         .collect();
 
     let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
@@ -547,7 +558,7 @@ fn polymul_pwc<const ORDER: usize>(
 
     let c: Vec<u64> = c_regular_form
         .iter()
-        .map(|v| mod_switch(*v, q, u64::MAX))
+        .map(|v| mod_switch(*v, q as u128, 1 << 64))
         .collect();
     Polynomial::new(c)
 }
@@ -560,14 +571,14 @@ fn polymul_pwc_naive<const ORDER: usize>(
     for _ in 0..2 * ORDER {
         c.push(0);
     }
-    let mut d: Vec<u64> = Vec::with_capacity(ORDER);
-
+    
     for i in 0..ORDER {
         for j in 0..ORDER {
             c[i + j] = c[i + j].wrapping_add(a[i].wrapping_mul(b[j]));
         }
     }
-
+    
+    let mut d: Vec<u64> = Vec::with_capacity(ORDER);
     for i in 0..ORDER {
         d.push(c[i].wrapping_add(c[i + ORDER]));
     }
@@ -715,7 +726,7 @@ pub fn decompose_polynomial<
 ) -> Vec<Polynomial<ORDER>> {
     let mut a = Vec::with_capacity(GLEV_L);
     for _ in 0..GLEV_L {
-        a.push([0;ORDER].to_vec());
+        a.push([0; ORDER].to_vec());
     }
     //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
     // println!("nums: {:?}", p.coeffs());
@@ -752,28 +763,24 @@ pub fn decompose_polynomial<
 
 fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
     let pos = (GLEV_L * GLEV_B) as u32;
-  
+
     let bit = if pos == 64 {
         0
     } else {
         n & (1 << (GLWE_Q as u32 - pos - 1))
     };
- 
+
     let new_n = if bit > 0 && pos < 64 {
-        n //n.wrapping_add(2_u64.pow(GLWE_Q as u32 - pos))
+        n // n.wrapping_add(1 << (GLWE_Q as u32 - pos))
     } else {
         n
     };
- 
+
     let res = (0..GLEV_L)
         .into_iter()
         .map(|i| {
-            // если первый отбрасываемый бит = 1, добавить 1
-            //
             let l_shift = new_n << (GLEV_B * i);
-  
             let r_shift = (l_shift) >> (GLWE_Q - GLEV_B);
- 
             r_shift
         })
         .collect::<Vec<u64>>();
