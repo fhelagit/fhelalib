@@ -110,7 +110,7 @@ where
         for glev_number in 0..=P::MASK_SIZE {
             let dec = decompose_polynomial::<
                 { S::GLWE_Q },
-                { S::GLEV_L },/y
+                { S::GLEV_L },
                 { S::GLEV_B },
                 { P::POLINOMIAL_SIZE },
             >(rhs.get_poly_by_index(glev_number));
