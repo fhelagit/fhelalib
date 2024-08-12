@@ -6,8 +6,8 @@ use crate::{
     tfhe::{
         ggsw::ggsw::GGSWCiphertext,
         glwe::GLWECiphertext,
-        schemas::{from_poly_list, from_u64, LWE_CT_Params, TFHESchema},
-        server_key::cmux::cmux,
+        schemas::{from_poly_list, from_u64, LWE_CT_Params, LWE_Params_after_extraction, TFHESchema},
+        server_key::{cmux::cmux, extract_sample::extract_sample},
     },
 };
 use std::{
@@ -213,8 +213,8 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
 
 
 pub struct EvaluatingKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> {
-    pub ksk: P_lwe::ContainerType,
-    pub bsk: P_lwe::ContainerType,
+    pub ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>,
+    pub bsk: BootstrappingKey<S, P_lwe, P_glwe>,
     phantom1: PhantomData<P_lwe>,
     phantom2: PhantomData<P_glwe>,
 }
@@ -222,7 +222,7 @@ pub struct EvaluatingKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_
 impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
 EvaluatingKey<S, P_lwe, P_glwe>
 {
-    pub fn new(bsk: &BootstrappingKey<S, P_lwe, P_glwe>, ksk: &KeyswitchingKey<S, P_lwe>) -> Self {
+    pub fn new(bsk: BootstrappingKey<S, P_lwe, P_glwe>, ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>) -> Self {
         EvaluatingKey {
             bsk: bsk,
             ksk: ksk,
@@ -231,60 +231,26 @@ EvaluatingKey<S, P_lwe, P_glwe>
         }
     }
 
-    pub fn eval(&self, ct: &GLWECiphertext<S, P_lwe_old>) -> GLWECiphertext<S, P_lwe>
+    pub fn eval(&self, ct: &GLWECiphertext<S, P_lwe>) -> GLWECiphertext<S, P_lwe>
     where
         [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
-        [(); { P_lwe_old::POLINOMIAL_SIZE }]: Sized,
+        [(); { P_glwe::POLINOMIAL_SIZE }]: Sized,
+        [(); { LWE_Params_after_extraction::<S>::POLINOMIAL_SIZE }]: Sized,
         [(); S::GLEV_B]: Sized,
         [(); S::GLEV_L]: Sized,
         [(); S::GLWE_Q]: Sized,
     {
         assert_eq!(P_lwe::POLINOMIAL_SIZE, 1);
-        assert_eq!(P_lwe_old::POLINOMIAL_SIZE, 1);
-        let mut acc: Vec<Polynomial<{ P_lwe::POLINOMIAL_SIZE }>> =
-            Vec::with_capacity(P_lwe::MASK_SIZE + 1);
-        for _ in 0..=P_lwe::MASK_SIZE {
-            acc.push(Polynomial::<{ P_lwe::POLINOMIAL_SIZE }>::new_zero())
-        }
-        // println!("switch_key 1");
-        for glev_number in 0..P_lwe_old::MASK_SIZE {
-            // println!("switch_key 2. glev_number: {glev_number}");
-            let dec = decompose_polynomial::<
-                { S::GLWE_Q },
-                { S::GLEV_L },
-                { S::GLEV_B },
-                { P_lwe_old::POLINOMIAL_SIZE },
-            >(ct.get_poly_by_index(glev_number));
-            // println!("mul_ext: 2, dec: {:?}", dec);
-            let offset_glev = glev_number * (S::GLEV_L * (P_lwe::MASK_SIZE + 1));
 
-            for glwe_number in 0..S::GLEV_L {
-                let offset_glwe = glwe_number * (P_lwe::MASK_SIZE + 1);
+        let (bootstrapped_message, _): (GLWECiphertext<S, P_glwe>, Vec<( String, GLWECiphertext<S, P_glwe>)> ) = self.bsk.bootstrap(ct);
 
-                for poly_number in 0..=P_lwe::MASK_SIZE {
-                    // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
-                    // println!("switch_key 3. offset_glev + offset_glwe + poly_number: {}", offset_glev + offset_glwe + poly_number);
-                    acc[poly_number] = &acc[poly_number]
-                        + &(&dec[glwe_number].swicth_order::<{ P_lwe::POLINOMIAL_SIZE }>()
-                            * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
-                }
-            }
-        }
 
-        // 330 != 11*1*3*128
+        let extracted_message = extract_sample::<S, P_glwe, LWE_Params_after_extraction<S>>(&bootstrapped_message, 0);
 
-        let mut b_ct: Vec<Polynomial<{ P_lwe::POLINOMIAL_SIZE }>> =
-            Vec::with_capacity(P_lwe::MASK_SIZE + 1);
-        for _ in 0..P_lwe::MASK_SIZE {
-            b_ct.push(Polynomial::new_zero());
-        }
-        // println!("switch_key 4");
-        b_ct.push(
-            ct.get_poly_by_index(P_lwe_old::MASK_SIZE)
-                .swicth_order::<{ P_lwe::POLINOMIAL_SIZE }>(),
-        );
-        &GLWECiphertext::from_polynomial_list(from_poly_list::from(b_ct))
-            - &GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
+        let keyswitched_message = self.ksk.switch_key(&extracted_message);
+
+        keyswitched_message
+
     }
 }
 

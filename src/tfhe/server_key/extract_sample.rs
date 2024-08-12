@@ -11,15 +11,12 @@ use std::ops::Sub;
 
 pub fn extract_sample<S: TFHESchema, P_old: LWE_CT_Params<S>,  P_new: LWE_CT_Params<S>>(
     ct: &GLWECiphertext<S, P_old>,
-    sk: &GLWE_secret_key<S, P_old>,
     sample_position: usize,
-)  -> (GLWECiphertext<S, P_new>, GLWE_secret_key<S, P_new>) 
+)  -> GLWECiphertext<S, P_new>
     where 
         [(); P_old::POLINOMIAL_SIZE]: Sized 
     {
     assert_eq!(P_new::POLINOMIAL_SIZE, 1);
-
-    let new_sk: GLWE_secret_key<S, P_new> = sk.extract_key::<P_new>();
 
 
     let mut a:Vec<Polynomial<1>> = Vec::with_capacity(P_old::POLINOMIAL_SIZE*P_old::MASK_SIZE);
@@ -45,7 +42,7 @@ pub fn extract_sample<S: TFHESchema, P_old: LWE_CT_Params<S>,  P_new: LWE_CT_Par
 
     let new_ct = GLWECiphertext::<S, P_new>::from_polynomial_list(from_poly_list::from(a));
 
-    (new_ct, new_sk)
+    new_ct
 
 
 }
