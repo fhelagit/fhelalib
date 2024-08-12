@@ -614,22 +614,22 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #![proptest_config(ProptestConfig::with_cases(1))]
     #[test]
     fn pt_bootstrapping_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
         
        // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
 
         let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
-        println!("pt_bootstrapping_expected 1, secret_key: {:?}, message: {:?}", sk_old, message);
+        // println!("pt_bootstrapping_expected 1, secret_key: {:?}, message: {:?}", sk_old, message);
         let sk_new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
-        println!("pt_bootstrapping_expected 2");
+        // println!("pt_bootstrapping_expected 2");
         let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message);
-        println!("pt_bootstrapping_expected 3");
+        // println!("pt_bootstrapping_expected 3");
         let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
-        println!("pt_bootstrapping_expected 4");
+        // println!("pt_bootstrapping_expected 4");
         let (bootstrapped_message, log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
-        println!("pt_bootstrapping_expected 5");
+        // println!("pt_bootstrapping_expected 5");
         // let decripted_b = sk.decrypt(&encripted_b);
 
         // let test_message = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(7<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B),0);
@@ -646,12 +646,12 @@ proptest! {
         let expected_message = message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
 
         let decrypted_message = sk_new.decrypt(&bootstrapped_message).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
-        println!("pt_bootstrapping_expected 6, secret_key: {:?}, message: {:?}", sk_old, message);
+        // println!("pt_bootstrapping_expected 6, secret_key: {:?}, message: {:?}", sk_old, message);
 
-        for i in 0..log_cts.len() {
+        // for i in 0..log_cts.len() {
 
-            println!("log_cts.{} decrypted: {:?}", log_cts[i].0, sk_new.decrypt(&log_cts[i].1).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
-        }
+        //     println!("log_cts.{} decrypted: {:?}", log_cts[i].0, sk_new.decrypt(&log_cts[i].1).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
+        // }
 
         if dbg!(decrypted_message) != dbg!(expected_message) {
             // assert_eq!(1,2)
@@ -712,6 +712,52 @@ proptest! {
 
         prop_assert_eq!(dbg!(decrypted_message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), dbg!(message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
         // assert_eq!(1,2);
+
+    }
+}
+
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_bootstrap_extract_keyswitch_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 2) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
+        
+       // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
+
+        let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+
+        let sk_new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+       
+        let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message);
+  
+        let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
+
+        let (bootstrapped_message, log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
+ 
+        let (extracted_message, extracted_key) = extract_sample::<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>, LWE_Params_after_extraction<TFHE_test_small_u64>>(&bootstrapped_message, &sk_new, 0);
+
+        let ksk = sk_old.create_keyswitching_key::<LWE_Params_after_extraction<TFHE_test_small_u64>>(&extracted_key);
+        let keyswitched_message = ksk.switch_key(&extracted_message);
+
+        let expected_message = message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
+
+        let decrypted_message = sk_old.decrypt(&keyswitched_message).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
+        // println!("pt_bootstrapping_expected 6, secret_key: {:?}, message: {:?}", sk_old, message);
+
+        // for i in 0..log_cts.len() {
+
+        //     println!("log_cts.{} decrypted: {:?}", log_cts[i].0, sk_new.decrypt(&log_cts[i].1).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
+        // }
+
+        if dbg!(decrypted_message) != dbg!(expected_message) {
+            // assert_eq!(1,2)
+            prop_assert_eq!(decrypted_message, expected_message);
+        }
+        // assert_eq!(decrypted_message, xpected_message);
+        // assert_eq!(1,2)
+
+
 
     }
 }

@@ -114,7 +114,7 @@ where
                 { S::GLEV_B },
                 { P::POLINOMIAL_SIZE },
             >(rhs.get_poly_by_index(glev_number));
-            println!("mul_ext: glev_number: {glev_number}, poly: {:?}, dec: {:?}", rhs.get_poly_by_index(glev_number), dec);
+            // println!("mul_ext: glev_number: {glev_number}, poly: {:?}, dec: {:?}", rhs.get_poly_by_index(glev_number), dec);
             let offset_glev = glev_number * (S::GLEV_L * (P::MASK_SIZE + 1));
 
             for glwe_number in 0..S::GLEV_L {

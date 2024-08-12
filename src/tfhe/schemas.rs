@@ -61,7 +61,7 @@ pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
     const LWE_K: usize = 3;
-    const GLWE_N: usize = 1024;
+    const GLWE_N: usize = 256;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
