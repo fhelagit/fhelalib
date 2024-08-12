@@ -571,13 +571,13 @@ fn polymul_pwc_naive<const ORDER: usize>(
     for _ in 0..2 * ORDER {
         c.push(0);
     }
-    
+
     for i in 0..ORDER {
         for j in 0..ORDER {
             c[i + j] = c[i + j].wrapping_add(a[i].wrapping_mul(b[j]));
         }
     }
-    
+
     let mut d: Vec<u64> = Vec::with_capacity(ORDER);
     for i in 0..ORDER {
         d.push(c[i].wrapping_add(c[i + ORDER]));

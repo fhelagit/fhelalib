@@ -6,13 +6,15 @@ use crate::{
     tfhe::{
         ggsw::ggsw::GGSWCiphertext,
         glwe::GLWECiphertext,
-        schemas::{from_poly_list, from_u64, LWE_CT_Params, LWE_Params_after_extraction, TFHESchema},
+        schemas::{
+            from_poly_list, from_u64, LWE_CT_Params, LWE_Params_after_extraction, TFHESchema,
+        },
         server_key::{cmux::cmux, extract_sample::extract_sample},
     },
 };
 use std::{
     alloc::Layout,
-    fmt::{self, Display},
+    fmt::{self, Display}, ops::Mul,
 };
 // use std::str::FromStr;
 use std::marker::PhantomData;
@@ -61,7 +63,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
     fn bootstrap_internal(
         &self,
         ct: &GLWECiphertext<S, P_lwe>,
-        lut__: &Polynomial<{P_glwe::POLINOMIAL_SIZE}>
+        lut__: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>,
     ) -> (
         GLWECiphertext<S, P_glwe>,
         Vec<(String, GLWECiphertext<S, P_glwe>)>,
@@ -72,6 +74,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         [(); S::GLEV_B]: Sized,
         [(); S::GLWE_Q]: Sized,
         [(); S::GLEV_L]: Sized,
+        //GLWECiphertext<S, P_lwe>: Mul<Polynomial<{P_glwe::POLINOMIAL_SIZE}>>,
     {
         // println!("bootstrap 1");
 
@@ -231,7 +234,6 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
     }
 }
 
-
 pub struct EvaluatingKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> {
     pub ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>,
     pub bsk: BootstrappingKey<S, P_lwe, P_glwe>,
@@ -240,9 +242,12 @@ pub struct EvaluatingKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_
 }
 
 impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
-EvaluatingKey<S, P_lwe, P_glwe>
+    EvaluatingKey<S, P_lwe, P_glwe>
 {
-    pub fn new(bsk: BootstrappingKey<S, P_lwe, P_glwe>, ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>) -> Self {
+    pub fn new(
+        bsk: BootstrappingKey<S, P_lwe, P_glwe>,
+        ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>,
+    ) -> Self {
         EvaluatingKey {
             bsk: bsk,
             ksk: ksk,
@@ -251,7 +256,11 @@ EvaluatingKey<S, P_lwe, P_glwe>
         }
     }
 
-    pub fn eval(&self, ct: &GLWECiphertext<S, P_lwe>, f: &dyn Fn(u64) -> u64) -> GLWECiphertext<S, P_lwe>
+    pub fn eval(
+        &self,
+        ct: &GLWECiphertext<S, P_lwe>,
+        f: &dyn Fn(u64) -> u64,
+    ) -> GLWECiphertext<S, P_lwe>
     where
         [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
         [(); { P_glwe::POLINOMIAL_SIZE }]: Sized,
@@ -270,15 +279,19 @@ EvaluatingKey<S, P_lwe, P_glwe>
             })
             .collect();
 
-        let (bootstrapped_message, _): (GLWECiphertext<S, P_glwe>, Vec<( String, GLWECiphertext<S, P_glwe>)> ) = self.bsk.bootstrap_internal(ct, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut));
+        let (bootstrapped_message, _): (
+            GLWECiphertext<S, P_glwe>,
+            Vec<(String, GLWECiphertext<S, P_glwe>)>,
+        ) = self
+            .bsk
+            .bootstrap_internal(ct, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut));
 
-
-        let extracted_message = extract_sample::<S, P_glwe, LWE_Params_after_extraction<S>>(&bootstrapped_message, 0);
+        let extracted_message =
+            extract_sample::<S, P_glwe, LWE_Params_after_extraction<S>>(&bootstrapped_message, 0);
 
         let keyswitched_message = self.ksk.switch_key(&extracted_message);
 
         keyswitched_message
-
     }
 }
 

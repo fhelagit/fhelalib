@@ -37,7 +37,7 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWECiphertext<S, P> {
     }
 
     pub fn get_poly_by_index(&self, ind: usize) -> Polynomial<{ P::POLINOMIAL_SIZE }> {
-        let mut v =  Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
+        let mut v = Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
         for i in 0..P::POLINOMIAL_SIZE {
             v[i] = from_u64::to(self.0[ind * P::POLINOMIAL_SIZE + i]);
         }
@@ -144,13 +144,14 @@ proptest! {
     }
 }
 
-impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&Polynomial<{P::POLINOMIAL_SIZE}>> for &GLWECiphertext<S, P>
+impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::Mul<&Polynomial<{ P::POLINOMIAL_SIZE }>>
+    for &GLWECiphertext<S, P>
 where
     [(); P::POLINOMIAL_SIZE]: Sized,
 {
     type Output = GLWECiphertext<S, P>;
 
-    fn mul(self, rhs: &Polynomial<{P::POLINOMIAL_SIZE}>) -> GLWECiphertext<S, P> {
+    fn mul(self, rhs: &Polynomial<{ P::POLINOMIAL_SIZE }>) -> GLWECiphertext<S, P> {
         let mut sums: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> =
             Vec::with_capacity(P::MASK_SIZE + 1);
 
