@@ -9,7 +9,7 @@ use crate::tfhe::schemas::{
 };
 use crate::tfhe::server_key::cmux::cmux;
 use crate::tfhe::server_key::extract_sample::extract_sample;
-use crate::tfhe::server_key::server_key::{BootstrappingKey, KeyswitchingKey};
+use crate::tfhe::server_key::server_key::{BootstrappingKey, EvaluatingKey, KeyswitchingKey};
 use crate::{
     random::random::rnd_u64_uniform,
     // tfhe::glwe::GLWECiphertext,
@@ -757,6 +757,45 @@ proptest! {
             prop_assert_eq!(decrypted_message, expected_message);
         }
         // assert_eq!(decrypted_message, xpected_message);
+        // assert_eq!(1,2)
+
+
+
+    }
+}
+
+#[cfg(test)]
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #[test]
+    fn pt_eval_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 2) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
+        
+       // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
+
+        let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+
+        let sk_new: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
+        let extracted_key = sk_new.extract_key::<LWE_Params_after_extraction<TFHE_test_small_u64>>();
+        let ksk = sk_old.create_keyswitching_key::<LWE_Params_after_extraction<TFHE_test_small_u64>>(&extracted_key);
+        let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
+        let eval_key = EvaluatingKey::new(bsk, ksk);
+       
+        let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message);
+
+        let f = |v: u64| {
+            v
+        };
+
+
+        let evaluated_message = eval_key.eval(&encrypted_message, &f);
+
+        let expected_message = message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
+
+        let decrypted_message = sk_old.decrypt(&evaluated_message).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
+
+   
+        prop_assert_eq!(decrypted_message, expected_message);
+
         // assert_eq!(1,2)
 
 

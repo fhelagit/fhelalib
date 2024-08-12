@@ -49,19 +49,40 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         // println!("bootstrap 1");
 
         let message_size_bits = S::GLEV_B as u32;
+        let lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
+            .flat_map(|e| {
+                (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
+                    .map(move |_a| (e << (S::GLWE_Q - S::GLEV_B)))
+            })
+            .collect();
+        self.bootstrap_internal(ct, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut))
+    }
+
+    fn bootstrap_internal(
+        &self,
+        ct: &GLWECiphertext<S, P_lwe>,
+        lut__: &Polynomial<{P_glwe::POLINOMIAL_SIZE}>
+    ) -> (
+        GLWECiphertext<S, P_glwe>,
+        Vec<(String, GLWECiphertext<S, P_glwe>)>,
+    )
+    where
+        [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+        [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+        [(); S::GLEV_B]: Sized,
+        [(); S::GLWE_Q]: Sized,
+        [(); S::GLEV_L]: Sized,
+    {
+        // println!("bootstrap 1");
+
         let mut cts: Vec<(String, GLWECiphertext<S, P_glwe>)> = Vec::new();
         let mut lut_: Vec<Polynomial<{ P_glwe::POLINOMIAL_SIZE }>> =
             Vec::with_capacity(P_glwe::MASK_SIZE + 1);
         for _ in 0..P_glwe::MASK_SIZE {
             lut_.push(Polynomial::new_zero());
         }
-        let lut__: Vec<u64> = (0..2_u64.pow(message_size_bits))
-            .flat_map(|e| {
-                (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
-                    .map(move |_a| (e << (S::GLWE_Q - S::GLEV_B)))
-            })
-            .collect();
-        lut_.push(Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut__));
+
+        lut_.push(lut__.clone());
 
         // println!("bootstrap 2: lut_ : {:?}", lut_);
 
@@ -101,7 +122,6 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             ); //(ct.get_poly_by_index(i)[0] >> (64-7+3)) << 3;//mod_switch(ct.get_poly_by_index(i)[0], 1<<64, P_glwe::POLINOMIAL_SIZE as u128);
 
             let a_i = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, a_i_ as usize);
-            shift = 0;
             // println!("bootstrap 6");
             let lut_rotated = &lut * &a_i;
             if shift != 0 {
@@ -231,7 +251,7 @@ EvaluatingKey<S, P_lwe, P_glwe>
         }
     }
 
-    pub fn eval(&self, ct: &GLWECiphertext<S, P_lwe>) -> GLWECiphertext<S, P_lwe>
+    pub fn eval(&self, ct: &GLWECiphertext<S, P_lwe>, f: &dyn Fn(u64) -> u64) -> GLWECiphertext<S, P_lwe>
     where
         [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
         [(); { P_glwe::POLINOMIAL_SIZE }]: Sized,
@@ -242,7 +262,15 @@ EvaluatingKey<S, P_lwe, P_glwe>
     {
         assert_eq!(P_lwe::POLINOMIAL_SIZE, 1);
 
-        let (bootstrapped_message, _): (GLWECiphertext<S, P_glwe>, Vec<( String, GLWECiphertext<S, P_glwe>)> ) = self.bsk.bootstrap(ct);
+        let message_size_bits = S::GLEV_B as u32;
+        let lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
+            .flat_map(|e| {
+                (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
+                    .map(move |_a| (f(e) << (S::GLWE_Q - S::GLEV_B)))
+            })
+            .collect();
+
+        let (bootstrapped_message, _): (GLWECiphertext<S, P_glwe>, Vec<( String, GLWECiphertext<S, P_glwe>)> ) = self.bsk.bootstrap_internal(ct, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut));
 
 
         let extracted_message = extract_sample::<S, P_glwe, LWE_Params_after_extraction<S>>(&bootstrapped_message, 0);
