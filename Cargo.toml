@@ -21,4 +21,4 @@ proptest = "1.5.0"
 
 [[example]]
 name = "strings"
-path = "examples/strings"
+path = "examples/strings/main.rs"
