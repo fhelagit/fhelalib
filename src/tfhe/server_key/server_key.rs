@@ -14,7 +14,8 @@ use crate::{
 };
 use std::{
     alloc::Layout,
-    fmt::{self, Display}, ops::Mul,
+    fmt::{self, Display},
+    ops::Mul,
 };
 // use std::str::FromStr;
 use std::marker::PhantomData;
@@ -107,10 +108,11 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         //     body_
         // );
 
-        let body: Polynomial<{P_glwe::POLINOMIAL_SIZE}> = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
-            1,
-            P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
-        );
+        let body: Polynomial<{ P_glwe::POLINOMIAL_SIZE }> =
+            Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
+                1,
+                P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
+            );
         // lut = &lut * &body;
         lut = self.mul_glwe_poly(&lut, &body);
         // println!("bootstrap 5");
@@ -132,8 +134,10 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             if shift != 0 {
                 // let lut_rotated =
                 //     &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
-                let lut_rotated =
-                self.mul_glwe_poly(&lut, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1));
+                let lut_rotated = self.mul_glwe_poly(
+                    &lut,
+                    &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1),
+                );
             }
 
             shift = 0;
@@ -156,7 +160,11 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         (lut, cts)
     }
 
-    fn mul_glwe_poly(&self, lhs: &GLWECiphertext<S, P_glwe>, rhs: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>) -> GLWECiphertext<S, P_glwe> 
+    fn mul_glwe_poly(
+        &self,
+        lhs: &GLWECiphertext<S, P_glwe>,
+        rhs: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>,
+    ) -> GLWECiphertext<S, P_glwe>
     where
         [(); P_glwe::POLINOMIAL_SIZE]: Sized,
     {
