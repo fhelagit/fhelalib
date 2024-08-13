@@ -3,16 +3,16 @@
 This library implements our vision of TFHE schema.
 
 ## Testing
-We use Proptest as well as regular unit test.
+We use Proptest as well as regular unit tests.
 To run tests:
 ```
 > cargo test
 ```
-Since this library is in very begining of it's development some test casess can fail.
+Since this library is in very begining of it's development some test cases can fail.
 
 ## Examples
 Currently we have one example which implements string comparison.
-to run example:
+To run example:
 ```
 > cargo run --release --example strings
 ```
