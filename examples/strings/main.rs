@@ -13,18 +13,13 @@ use tfhela::{
 };
 
 fn main() {
-    // получить строку
     let str = "hello".to_string();
     let str2 = "hello".to_string();
-    // создать секретный ключ
+
     let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
-    // зашифровать строку
     let encrypted_str = key.encrypt_string(&str);
-    // создать евал ключ
     let eval_key = key.make_eval_key();
-    // выполнить стравнени
     let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str2, &key);
-    // расшифровать результат
     let result = key.decrypt_bool(&encrypted_result);
 
     println!("Result: {result}");
