@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use crate::{
     math::{
         modular::module_switch::mod_switch,
@@ -11,11 +13,6 @@ use crate::{
         },
         server_key::{cmux::cmux, extract_sample::extract_sample},
     },
-};
-use std::{
-    alloc::Layout,
-    fmt::{self, Display},
-    ops::Mul,
 };
 // use std::str::FromStr;
 use std::marker::PhantomData;
@@ -205,8 +202,8 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
 
     pub fn switch_key(&self, ct: &GLWECiphertext<S, P_lwe_old>) -> GLWECiphertext<S, P_lwe>
     where
-        [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
-        [(); { P_lwe_old::POLINOMIAL_SIZE }]: Sized,
+        [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+        [(); P_lwe_old::POLINOMIAL_SIZE]: Sized,
         [(); S::GLEV_B]: Sized,
         [(); S::GLEV_L]: Sized,
         [(); S::GLWE_Q]: Sized,
@@ -288,9 +285,9 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         f: &dyn Fn(u64) -> u64,
     ) -> GLWECiphertext<S, P_lwe>
     where
-        [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
-        [(); { P_glwe::POLINOMIAL_SIZE }]: Sized,
-        [(); { LWE_Params_after_extraction::<S>::POLINOMIAL_SIZE }]: Sized,
+        [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+        [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+        [(); LWE_Params_after_extraction::<S>::POLINOMIAL_SIZE]: Sized,
         [(); S::GLEV_B]: Sized,
         [(); S::GLEV_L]: Sized,
         [(); S::GLWE_Q]: Sized,

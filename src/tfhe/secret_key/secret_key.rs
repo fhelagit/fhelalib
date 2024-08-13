@@ -1,7 +1,6 @@
 #![allow(non_camel_case_types)]
 
 use crate::math::polynomial::polynomial::Polynomial;
-use crate::random::random::{rnd_u64_gausean, rnd_u64_uniform_bounded};
 use crate::tfhe::ggsw::ggsw::GGSWCiphertext;
 use crate::tfhe::glwe::GLWECiphertext;
 use crate::tfhe::schemas::{
@@ -11,13 +10,7 @@ use crate::tfhe::schemas::{
 use crate::tfhe::server_key::cmux::cmux;
 use crate::tfhe::server_key::extract_sample::extract_sample;
 use crate::tfhe::server_key::server_key::{BootstrappingKey, EvaluatingKey, KeyswitchingKey};
-use crate::{
-    random::random::rnd_u64_uniform,
-    // tfhe::glwe::GLWECiphertext,
-    // math::polynomial::polynomial::Polynomial,
-    random::random::rnd_u64_uniform_binary,
-};
-// use std::ops::{Index};
+
 
 #[cfg(test)]
 use proptest::prelude::*;
@@ -341,7 +334,7 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(10000))]
     #[test]
-    fn pt_ggsw_mul_external_expected(a_ in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 2) as u64 ).collect())),
+    fn pt_ggsw_mul_external_expected(_a_ in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 2) as u64 ).collect())),
                            b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 2) as u64).collect()))
                             // b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new([1,1].to_vec()))
                         ) {
@@ -481,7 +474,7 @@ proptest! {
         let product = (&encrypted_a) * &encrypted_b;
 
 
-        let decrypted_product = (sk.decrypt(&product).into_iter().map(|v| (v.wrapping_shr(56) as u8)).collect::<Vec<u8>>());
+        let decrypted_product = sk.decrypt(&product).into_iter().map(|v| (v.wrapping_shr(56) as u8)).collect::<Vec<u8>>();
         // println!("expected_product: {}", expected_product[0]);
         println!("decrypted_product: {:?}, {}, {}, {}", decrypted_product[0], decrypted_product[0] == 0 , decrypted_product[0] == 255, expected_product[0] == decrypted_product[0]);
 
@@ -618,7 +611,7 @@ proptest! {
         // println!("pt_bootstrapping_expected 3");
         let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
         // println!("pt_bootstrapping_expected 4");
-        let (bootstrapped_message, log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
+        let (bootstrapped_message, _log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
         // println!("pt_bootstrapping_expected 5");
         // let decripted_b = sk.decrypt(&encripted_b);
 
@@ -718,7 +711,7 @@ proptest! {
 
         let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
 
-        let (bootstrapped_message, log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
+        let (bootstrapped_message, _log_cts): (GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>, Vec<( String, GLWECiphertext<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>>)> ) = bsk.bootstrap(&encrypted_message);
 
         let extracted_message = extract_sample::<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>, LWE_Params_after_extraction<TFHE_test_small_u64>>(&bootstrapped_message, 0);
 

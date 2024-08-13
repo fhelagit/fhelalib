@@ -1,4 +1,3 @@
-use crate::tfhe::ggsw::*;
 use crate::tfhe::{
     ggsw::ggsw::GGSWCiphertext,
     glwe::GLWECiphertext,

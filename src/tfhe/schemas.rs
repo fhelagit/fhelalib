@@ -6,7 +6,7 @@ use crate::math::polynomial::polynomial::Polynomial;
 use crate::random::random::{
     rnd_u64_gausean, rnd_u64_uniform, rnd_u64_uniform_binary, rnd_u64_uniform_bounded,
 };
-use std::fmt::{self, Debug, Display};
+use std::fmt::{Debug};
 use std::ops::Index;
 
 pub trait TFHESchema: Clone

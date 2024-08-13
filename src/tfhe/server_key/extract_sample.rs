@@ -1,13 +1,11 @@
+#![allow(non_camel_case_types)]
+
 use crate::math::polynomial::polynomial::Polynomial;
-use crate::tfhe::ggsw::*;
 use crate::tfhe::schemas::from_poly_list;
 use crate::tfhe::{
-    ggsw::ggsw::GGSWCiphertext,
     glwe::GLWECiphertext,
     schemas::{LWE_CT_Params, TFHESchema},
-    secret_key::secret_key::GLWE_secret_key,
 };
-use std::ops::Sub;
 
 pub fn extract_sample<S: TFHESchema, P_old: LWE_CT_Params<S>, P_new: LWE_CT_Params<S>>(
     ct: &GLWECiphertext<S, P_old>,
