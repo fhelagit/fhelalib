@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use crate::{
     math::{
         modular::module_switch::mod_switch,
@@ -6,13 +8,11 @@ use crate::{
     tfhe::{
         ggsw::ggsw::GGSWCiphertext,
         glwe::GLWECiphertext,
-        schemas::{from_poly_list, from_u64, LWE_CT_Params, TFHESchema},
-        server_key::cmux::cmux,
+        schemas::{
+            from_poly_list, from_u64, LWE_CT_Params, LWE_Params_after_extraction, TFHESchema,
+        },
+        server_key::{cmux::cmux, extract_sample::extract_sample},
     },
-};
-use std::{
-    alloc::Layout,
-    fmt::{self, Display},
 };
 // use std::str::FromStr;
 use std::marker::PhantomData;
@@ -49,19 +49,41 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         // println!("bootstrap 1");
 
         let message_size_bits = S::GLEV_B as u32;
-        let mut cts: Vec<(String, GLWECiphertext<S, P_glwe>)> = Vec::new();
-        let mut lut_: Vec<Polynomial<{ P_glwe::POLINOMIAL_SIZE }>> =
-            Vec::with_capacity(P_glwe::MASK_SIZE + 1);
-        for _ in 0..P_glwe::MASK_SIZE {
-            lut_.push(Polynomial::new_zero());
-        }
-        let lut__: Vec<u64> = (0..2_u64.pow(message_size_bits))
+        let lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
             .flat_map(|e| {
                 (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
                     .map(move |_a| (e << (S::GLWE_Q - S::GLEV_B)))
             })
             .collect();
-        lut_.push(Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut__));
+        self.bootstrap_internal(ct, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut))
+    }
+
+    fn bootstrap_internal(
+        &self,
+        ct: &GLWECiphertext<S, P_lwe>,
+        lut__: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>,
+    ) -> (
+        GLWECiphertext<S, P_glwe>,
+        Vec<(String, GLWECiphertext<S, P_glwe>)>,
+    )
+    where
+        [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+        [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+        [(); S::GLEV_B]: Sized,
+        [(); S::GLWE_Q]: Sized,
+        [(); S::GLEV_L]: Sized,
+        //GLWECiphertext<S, P_lwe>: Mul<Polynomial<{P_glwe::POLINOMIAL_SIZE}>>,
+    {
+        // println!("bootstrap 1");
+
+        let cts: Vec<(String, GLWECiphertext<S, P_glwe>)> = Vec::new();
+        let mut lut_: Vec<Polynomial<{ P_glwe::POLINOMIAL_SIZE }>> =
+            Vec::with_capacity(P_glwe::MASK_SIZE + 1);
+        for _ in 0..P_glwe::MASK_SIZE {
+            lut_.push(Polynomial::new_zero());
+        }
+
+        lut_.push(lut__.clone());
 
         // println!("bootstrap 2: lut_ : {:?}", lut_);
 
@@ -83,11 +105,13 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         //     body_
         // );
 
-        let body = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
-            1,
-            P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
-        );
-        lut = &lut * &body;
+        let body: Polynomial<{ P_glwe::POLINOMIAL_SIZE }> =
+            Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
+                1,
+                P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
+            );
+        // lut = &lut * &body;
+        lut = self.mul_glwe_poly(&lut, &body);
         // println!("bootstrap 5");
         // cts.push(("lut rotated b".to_string(), lut.clone()));
 
@@ -101,12 +125,16 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             ); //(ct.get_poly_by_index(i)[0] >> (64-7+3)) << 3;//mod_switch(ct.get_poly_by_index(i)[0], 1<<64, P_glwe::POLINOMIAL_SIZE as u128);
 
             let a_i = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, a_i_ as usize);
-            shift = 0;
             // println!("bootstrap 6");
-            let lut_rotated = &lut * &a_i;
+            // let lut_rotated = &lut * &a_i;
+            let mut lut_rotated = self.mul_glwe_poly(&lut, &a_i);
             if shift != 0 {
-                let lut_rotated =
-                    &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
+                // lut_rotated =
+                //     &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
+                lut_rotated = self.mul_glwe_poly(
+                    &lut,
+                    &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1),
+                );
             }
 
             shift = 0;
@@ -127,6 +155,24 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         // println!("bootstrap 8");
 
         (lut, cts)
+    }
+
+    fn mul_glwe_poly(
+        &self,
+        lhs: &GLWECiphertext<S, P_glwe>,
+        rhs: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>,
+    ) -> GLWECiphertext<S, P_glwe>
+    where
+        [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+    {
+        let mut sums: Vec<Polynomial<{ P_glwe::POLINOMIAL_SIZE }>> =
+            Vec::with_capacity(P_glwe::MASK_SIZE + 1);
+
+        // println!("P::MASK_SIZE: {}", P::MASK_SIZE);
+        for i in 0..(P_glwe::MASK_SIZE + 1) {
+            sums.push(&lhs.get_poly_by_index(i) * rhs);
+        }
+        GLWECiphertext::<S, P_glwe>::from_polynomial_list(from_poly_list::from(sums))
     }
 }
 pub struct KeyswitchingKey<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>> {
@@ -156,8 +202,8 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
 
     pub fn switch_key(&self, ct: &GLWECiphertext<S, P_lwe_old>) -> GLWECiphertext<S, P_lwe>
     where
-        [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
-        [(); { P_lwe_old::POLINOMIAL_SIZE }]: Sized,
+        [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+        [(); P_lwe_old::POLINOMIAL_SIZE]: Sized,
         [(); S::GLEV_B]: Sized,
         [(); S::GLEV_L]: Sized,
         [(); S::GLWE_Q]: Sized,
@@ -211,18 +257,20 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
     }
 }
 
-
 pub struct EvaluatingKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> {
-    pub ksk: P_lwe::ContainerType,
-    pub bsk: P_lwe::ContainerType,
+    pub ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>,
+    pub bsk: BootstrappingKey<S, P_lwe, P_glwe>,
     phantom1: PhantomData<P_lwe>,
     phantom2: PhantomData<P_glwe>,
 }
 
 impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
-EvaluatingKey<S, P_lwe, P_glwe>
+    EvaluatingKey<S, P_lwe, P_glwe>
 {
-    pub fn new(bsk: &BootstrappingKey<S, P_lwe, P_glwe>, ksk: &KeyswitchingKey<S, P_lwe>) -> Self {
+    pub fn new(
+        bsk: BootstrappingKey<S, P_lwe, P_glwe>,
+        ksk: KeyswitchingKey<S, LWE_Params_after_extraction<S>, P_lwe>,
+    ) -> Self {
         EvaluatingKey {
             bsk: bsk,
             ksk: ksk,
@@ -231,60 +279,42 @@ EvaluatingKey<S, P_lwe, P_glwe>
         }
     }
 
-    pub fn eval(&self, ct: &GLWECiphertext<S, P_lwe_old>) -> GLWECiphertext<S, P_lwe>
+    pub fn eval(
+        &self,
+        ct: &GLWECiphertext<S, P_lwe>,
+        f: &dyn Fn(u64) -> u64,
+    ) -> GLWECiphertext<S, P_lwe>
     where
-        [(); { P_lwe::POLINOMIAL_SIZE }]: Sized,
-        [(); { P_lwe_old::POLINOMIAL_SIZE }]: Sized,
+        [(); P_lwe::POLINOMIAL_SIZE]: Sized,
+        [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+        [(); LWE_Params_after_extraction::<S>::POLINOMIAL_SIZE]: Sized,
         [(); S::GLEV_B]: Sized,
         [(); S::GLEV_L]: Sized,
         [(); S::GLWE_Q]: Sized,
     {
         assert_eq!(P_lwe::POLINOMIAL_SIZE, 1);
-        assert_eq!(P_lwe_old::POLINOMIAL_SIZE, 1);
-        let mut acc: Vec<Polynomial<{ P_lwe::POLINOMIAL_SIZE }>> =
-            Vec::with_capacity(P_lwe::MASK_SIZE + 1);
-        for _ in 0..=P_lwe::MASK_SIZE {
-            acc.push(Polynomial::<{ P_lwe::POLINOMIAL_SIZE }>::new_zero())
-        }
-        // println!("switch_key 1");
-        for glev_number in 0..P_lwe_old::MASK_SIZE {
-            // println!("switch_key 2. glev_number: {glev_number}");
-            let dec = decompose_polynomial::<
-                { S::GLWE_Q },
-                { S::GLEV_L },
-                { S::GLEV_B },
-                { P_lwe_old::POLINOMIAL_SIZE },
-            >(ct.get_poly_by_index(glev_number));
-            // println!("mul_ext: 2, dec: {:?}", dec);
-            let offset_glev = glev_number * (S::GLEV_L * (P_lwe::MASK_SIZE + 1));
 
-            for glwe_number in 0..S::GLEV_L {
-                let offset_glwe = glwe_number * (P_lwe::MASK_SIZE + 1);
+        let message_size_bits = S::GLEV_B as u32;
+        let lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
+            .flat_map(|e| {
+                (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
+                    .map(move |_a| (f(e) << (S::GLWE_Q - S::GLEV_B)))
+            })
+            .collect();
 
-                for poly_number in 0..=P_lwe::MASK_SIZE {
-                    // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
-                    // println!("switch_key 3. offset_glev + offset_glwe + poly_number: {}", offset_glev + offset_glwe + poly_number);
-                    acc[poly_number] = &acc[poly_number]
-                        + &(&dec[glwe_number].swicth_order::<{ P_lwe::POLINOMIAL_SIZE }>()
-                            * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
-                }
-            }
-        }
+        let (bootstrapped_message, _): (
+            GLWECiphertext<S, P_glwe>,
+            Vec<(String, GLWECiphertext<S, P_glwe>)>,
+        ) = self
+            .bsk
+            .bootstrap_internal(ct, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new(lut));
 
-        // 330 != 11*1*3*128
+        let extracted_message =
+            extract_sample::<S, P_glwe, LWE_Params_after_extraction<S>>(&bootstrapped_message, 0);
 
-        let mut b_ct: Vec<Polynomial<{ P_lwe::POLINOMIAL_SIZE }>> =
-            Vec::with_capacity(P_lwe::MASK_SIZE + 1);
-        for _ in 0..P_lwe::MASK_SIZE {
-            b_ct.push(Polynomial::new_zero());
-        }
-        // println!("switch_key 4");
-        b_ct.push(
-            ct.get_poly_by_index(P_lwe_old::MASK_SIZE)
-                .swicth_order::<{ P_lwe::POLINOMIAL_SIZE }>(),
-        );
-        &GLWECiphertext::from_polynomial_list(from_poly_list::from(b_ct))
-            - &GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
+        let keyswitched_message = self.ksk.switch_key(&extracted_message);
+
+        keyswitched_message
     }
 }
 
