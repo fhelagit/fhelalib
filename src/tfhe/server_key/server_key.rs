@@ -79,7 +79,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
     {
         // println!("bootstrap 1");
 
-        let mut cts: Vec<(String, GLWECiphertext<S, P_glwe>)> = Vec::new();
+        let cts: Vec<(String, GLWECiphertext<S, P_glwe>)> = Vec::new();
         let mut lut_: Vec<Polynomial<{ P_glwe::POLINOMIAL_SIZE }>> =
             Vec::with_capacity(P_glwe::MASK_SIZE + 1);
         for _ in 0..P_glwe::MASK_SIZE {
@@ -130,11 +130,11 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             let a_i = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, a_i_ as usize);
             // println!("bootstrap 6");
             // let lut_rotated = &lut * &a_i;
-            let lut_rotated = self.mul_glwe_poly(&lut, &a_i);
+            let mut lut_rotated = self.mul_glwe_poly(&lut, &a_i);
             if shift != 0 {
-                // let lut_rotated =
+                // lut_rotated =
                 //     &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
-                let lut_rotated = self.mul_glwe_poly(
+                lut_rotated = self.mul_glwe_poly(
                     &lut,
                     &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1),
                 );

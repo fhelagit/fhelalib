@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+
+
 use std::ops;
 use std::ops::{Index, IndexMut};
 
@@ -300,8 +303,10 @@ fn poly_approximately_equial<const ORDER: usize>(
 }
 
 // NWC
+#[allow(dead_code)]
 const nwc_n: usize = 32;
 
+#[allow(dead_code)]
 fn polymul_nwc_naive<const ORDER: usize>(
     a: &Polynomial<ORDER>,
     b: &Polynomial<ORDER>,
@@ -322,6 +327,7 @@ fn polymul_nwc_naive<const ORDER: usize>(
     Polynomial::new(d)
 }
 
+#[allow(dead_code)]
 fn polymul_nwc<const ORDER: usize>(
     a: &Polynomial<ORDER>,
     b: &Polynomial<ORDER>,
@@ -507,8 +513,10 @@ proptest! {
 }
 
 // PWC
+#[allow(dead_code)]
 const pwc_n: usize = 32;
 
+#[allow(dead_code)]
 fn polymul_pwc<const ORDER: usize>(
     a: &Polynomial<ORDER>,
     b: &Polynomial<ORDER>,
