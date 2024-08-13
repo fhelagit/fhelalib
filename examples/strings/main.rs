@@ -1,4 +1,5 @@
 #![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
 
 use tfhela::{
     math::polynomial::polynomial::Polynomial,
@@ -19,7 +20,7 @@ fn main() {
     let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
     let encrypted_str = key.encrypt_string(&str);
     let eval_key = key.make_eval_key();
-    let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str2, &key);
+    let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str2);
     let result = key.decrypt_bool(&encrypted_result);
 
     println!("Result: {result}");
@@ -82,6 +83,7 @@ where
         )
     }
 
+    #[allow(dead_code)]
     pub fn decrypt_char(&self, ct: &CharCt<S, P>) -> u64 {
         let m = self.0.decrypt(&ct.0);
 
@@ -107,19 +109,19 @@ where
     }
 }
 
-struct EvalKey<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>(
-    EvaluatingKey<S, P_lwe, P_glwe>,
+struct EvalKey<S: TFHESchema, PLwe: LWE_CT_Params<S>, PGlwe: LWE_CT_Params<S>>(
+    EvaluatingKey<S, PLwe, PGlwe>,
 );
-impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>> EvalKey<S, P_lwe, P_glwe>
+impl<S: TFHESchema, PLwe: LWE_CT_Params<S>, PGlwe: LWE_CT_Params<S>> EvalKey<S, PLwe, PGlwe>
 where
-    [(); P_lwe::POLINOMIAL_SIZE]: Sized,
-    [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+    [(); PLwe::POLINOMIAL_SIZE]: Sized,
+    [(); PGlwe::POLINOMIAL_SIZE]: Sized,
     [(); LWE_Params_after_extraction::<S>::POLINOMIAL_SIZE]: Sized,
     [(); S::GLWE_Q]: Sized,
     [(); S::GLEV_B]: Sized,
     [(); S::GLEV_L]: Sized,
 {
-    pub fn is_chars_eq(&self, ct: &CharCt<S, P_lwe>, char: u64) -> BoolCt<S, P_lwe> {
+    pub fn is_chars_eq(&self, ct: &CharCt<S, PLwe>, char: u64) -> BoolCt<S, PLwe> {
         let f = |v: u64| if v == char { 1 } else { 0 };
         let is_eq = self.0.eval(&ct.0, &f);
         BoolCt(is_eq)
@@ -127,11 +129,10 @@ where
 
     pub fn is_strings_eq(
         &self,
-        ct: StringCt<S, P_lwe>,
+        ct: StringCt<S, PLwe>,
         s: &String,
-        sk: &SecretKey<S, P_lwe>,
-    ) -> BoolCt<S, P_lwe> {
-        let mut acc: BoolCt<S, P_lwe> =
+    ) -> BoolCt<S, PLwe> {
+        let mut acc: BoolCt<S, PLwe> =
             self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64 - 100);
         for i in 1..s.len() {
             acc = self.and(
@@ -143,8 +144,8 @@ where
         acc
     }
 
-    pub fn and(&self, lhs: &BoolCt<S, P_lwe>, rhs: &BoolCt<S, P_lwe>) -> BoolCt<S, P_lwe> {
-        let shift = Polynomial::<{ P_lwe::POLINOMIAL_SIZE }>::new_monomial(4, 0);
+    pub fn and(&self, lhs: &BoolCt<S, PLwe>, rhs: &BoolCt<S, PLwe>) -> BoolCt<S, PLwe> {
+        let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(4, 0);
         let shifted_rhs = &rhs.0 * &shift;
 
         let sum = &lhs.0 + &shifted_rhs;
