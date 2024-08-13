@@ -107,11 +107,12 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         //     body_
         // );
 
-        let body = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
+        let body: Polynomial<{P_glwe::POLINOMIAL_SIZE}> = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
             1,
             P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
         );
-        lut = &lut * &body;
+        // lut = &lut * &body;
+        lut = self.mul_glwe_poly(&lut, &body);
         // println!("bootstrap 5");
         // cts.push(("lut rotated b".to_string(), lut.clone()));
 
@@ -126,10 +127,13 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
 
             let a_i = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, a_i_ as usize);
             // println!("bootstrap 6");
-            let lut_rotated = &lut * &a_i;
+            // let lut_rotated = &lut * &a_i;
+            let lut_rotated = self.mul_glwe_poly(&lut, &a_i);
             if shift != 0 {
+                // let lut_rotated =
+                //     &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
                 let lut_rotated =
-                    &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
+                self.mul_glwe_poly(&lut, &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1));
             }
 
             shift = 0;
@@ -150,6 +154,20 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         // println!("bootstrap 8");
 
         (lut, cts)
+    }
+
+    fn mul_glwe_poly(&self, lhs: &GLWECiphertext<S, P_glwe>, rhs: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>) -> GLWECiphertext<S, P_glwe> 
+    where
+        [(); P_glwe::POLINOMIAL_SIZE]: Sized,
+    {
+        let mut sums: Vec<Polynomial<{ P_glwe::POLINOMIAL_SIZE }>> =
+            Vec::with_capacity(P_glwe::MASK_SIZE + 1);
+
+        // println!("P::MASK_SIZE: {}", P::MASK_SIZE);
+        for i in 0..(P_glwe::MASK_SIZE + 1) {
+            sums.push(&lhs.get_poly_by_index(i) * rhs);
+        }
+        GLWECiphertext::<S, P_glwe>::from_polynomial_list(from_poly_list::from(sums))
     }
 }
 pub struct KeyswitchingKey<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>> {
