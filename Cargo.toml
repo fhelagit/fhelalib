@@ -7,6 +7,7 @@ edition = "2021"
 doctest = false
 
 [dependencies]
+colored = "2.1.0"
 num = "0.4.3"
 rand = "0.8.5"
 rand_distr = "0.4.3"
@@ -15,6 +16,8 @@ serde = "1.0.203"
 serde_json = "1.0.120"
 
 [dev-dependencies]
+colored = "2.1.0"
+clap = { version = "4.3.13", features = ["derive"] }
 proptest-derive = "0.5.0"
 proptest = "1.5.0"
 
