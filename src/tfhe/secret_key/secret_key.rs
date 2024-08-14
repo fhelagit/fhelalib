@@ -15,7 +15,7 @@ use crate::tfhe::server_key::server_key::{BootstrappingKey, EvaluatingKey, Keysw
 #[cfg(test)]
 use proptest::prelude::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GLWE_secret_key<S: TFHESchema, P: LWE_CT_Params<S>>(P::SecretKeyContainerType);
 
 impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWE_secret_key<S, P>
