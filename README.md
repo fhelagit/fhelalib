@@ -14,7 +14,7 @@ Since this library is in very begining of it's development some test cases can f
 Currently we have one example which implements string comparison.
 To run example:
 ```
-> cargo run --release --example strings
+> cargo run --release --example strings check-equility STRING_TO_BE_ENCRYPTED STRING_TO_COMPARED
 ```
 
 ## Perfomance

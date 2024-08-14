@@ -12,19 +12,44 @@ use tfhela::{
         server_key::server_key::{BootstrappingKey, EvaluatingKey},
     },
 };
+use clap::{Parser, Subcommand};
+use colored::Colorize;
+
+#[derive(Debug, Subcommand)]
+enum AppCommand {
+    CheckEquility {
+        str_to_be_encrypted: String,
+        str_to_compare: String
+    },
+}
+
+#[derive(Parser)]
+struct CliArgs {
+    #[clap(subcommand)]
+    command: AppCommand,
+}
 
 fn main() {
-    let str = "hello".to_string();
-    let str2 = "hello".to_string();
 
-    let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
-    let encrypted_str = key.encrypt_string(&str);
-    let eval_key = key.make_eval_key();
-    let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str2);
-    let result = key.decrypt_bool(&encrypted_result);
+    let args = CliArgs::parse();
 
-    println!("Result: {result}");
-    println!("Done")
+    match args {
+        CliArgs {
+            command: AppCommand::CheckEquility {str_to_be_encrypted, str_to_compare},
+            ..
+        } => {
+            
+            
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
+            let encrypted_str = key.encrypt_string(&str_to_be_encrypted);
+            let eval_key = key.make_eval_key();
+            let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str_to_compare);
+            let result = key.decrypt_bool(&encrypted_result);
+            
+            println!("Done");
+            println!("Result of checking equility of encrypted string \"{str_to_be_encrypted}\" and plain string \"{str_to_compare}\": {}", if result {"strings are same".green()} else {"string aren't same".red()});
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -145,12 +170,12 @@ where
     }
 
     pub fn and(&self, lhs: &BoolCt<S, PLwe>, rhs: &BoolCt<S, PLwe>) -> BoolCt<S, PLwe> {
-        let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(4, 0);
-        let shifted_rhs = &rhs.0 * &shift;
+        let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(2, 0);
+        let shifted_rhs = &rhs.0 * &shift; 
 
         let sum = &lhs.0 + &shifted_rhs;
 
-        let f = |v: u64| if v == 5 { 1 } else { 0 };
+        let f = |v: u64| if v == 3 { 1 } else { 0 };
         let res = self.0.eval(&sum, &f);
         BoolCt(res)
     }
