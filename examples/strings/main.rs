@@ -56,8 +56,8 @@ fn main() {
 struct MySchema;
 
 impl TFHESchema for MySchema {
-    const LWE_K: usize = 2;
-    const GLWE_N: usize = 512;
+    const LWE_K: usize = 3;
+    const GLWE_N: usize = 256;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
@@ -171,7 +171,7 @@ where
 
     pub fn and(&self, lhs: &BoolCt<S, PLwe>, rhs: &BoolCt<S, PLwe>) -> BoolCt<S, PLwe> {
         let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(2, 0);
-        let shifted_rhs = &rhs.0 * &shift;
+        let shifted_rhs = &rhs.0 * &shift; 
 
         let sum = &lhs.0 + &shifted_rhs;
 

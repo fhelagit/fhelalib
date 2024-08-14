@@ -128,14 +128,14 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             // println!("bootstrap 6");
             // let lut_rotated = &lut * &a_i;
             let mut lut_rotated = self.mul_glwe_poly(&lut, &a_i);
-            if shift != 0 {
-                // lut_rotated =
-                //     &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
-                lut_rotated = self.mul_glwe_poly(
-                    &lut,
-                    &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1),
-                );
-            }
+            // if shift != 0 {
+            //     // lut_rotated =
+            //     //     &lut * &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1);
+            //     lut_rotated = self.mul_glwe_poly(
+            //         &lut,
+            //         &Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, 1),
+            //     );
+            // }
 
             shift = 0;
             // cts.push((
