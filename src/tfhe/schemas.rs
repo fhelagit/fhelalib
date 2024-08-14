@@ -28,6 +28,7 @@ where
     Self::GLWECTContainerType: Index<usize, Output = Self::ScalarType>,
 
     Self::SecretKeyContainerType: Clone,
+    Self::SecretKeyContainerType: Debug,
     Self::SecretKeyContainerType: from_u64_vector,
     Self::SecretKeyContainerType: serde::ser::Serialize,
     Self::SecretKeyContainerType: Sized,
@@ -105,6 +106,7 @@ where
     Self::ScalarType: from_u64,
     Self::ScalarType: Copy,
 
+    Self::SecretKeyContainerType: Debug,
     Self::SecretKeyContainerType: Clone,
     Self::SecretKeyContainerType: from_u64_vector,
     Self::SecretKeyContainerType: serde::ser::Serialize,

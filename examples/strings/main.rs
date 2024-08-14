@@ -27,11 +27,19 @@ enum AppCommand {
 struct CliArgs {
     #[clap(subcommand)]
     command: AppCommand,
+    #[clap(short, long, value_parser(clap::value_parser!(bool)), default_value_t=false)]
+    verbose: bool,
 }
 
 fn main() {
 
-    let args = CliArgs::parse();
+    let args @ CliArgs { verbose, .. } = CliArgs::parse();
+
+    let print_verbose = |s: String| {
+        if verbose {
+            println!("{}", s);
+        }
+    };
 
     match args {
         CliArgs {
@@ -39,15 +47,28 @@ fn main() {
             ..
         } => {
             
-            
+            assert_eq!(str_to_be_encrypted.len(), str_to_compare.len(), "{}", format!("String lengths must match").red());
+            assert!(str_to_be_encrypted.chars().chain(str_to_compare.chars()).all(|x| x.is_ascii_lowercase()), "{}", format!("String should contain only latin letters in lower case").red() );
+
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
+
+            print_verbose(format!("{} {:?}", format!("Secret key:").green(), &key));
+
+            print_verbose(format!("{} {:?}", format!("Plain string:").green(), &str_to_be_encrypted));
             let encrypted_str = key.encrypt_string(&str_to_be_encrypted);
+            print_verbose(format!("{} {:?}", format!("Encrypted string:").green(), &encrypted_str));
+
             let eval_key = key.make_eval_key();
+
+            print_verbose(format!("{} {:?}", format!("Plain string to compare:").green(), &str_to_compare));
             let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str_to_compare);
+            print_verbose(format!("{} {:?}", format!("Encrypted comparasion result:").green(), &encrypted_result));
+
             let result = key.decrypt_bool(&encrypted_result);
-            
-            println!("Done");
+            print_verbose(format!("{} {:?}", format!("Decrypted comparasion result:").green(), &result));
             println!("Result of checking equility of encrypted string \"{str_to_be_encrypted}\" and plain string \"{str_to_compare}\": {}", if result {"strings are same".green()} else {"string aren't same".red()});
+           
+            println!("{}", format!("Done").green());
         }
     }
 }
@@ -69,12 +90,15 @@ impl TFHESchema for MySchema {
     type PolynomialContainerType = Vec<Self::ScalarType>;
 }
 
+#[derive(Debug)]
 struct CharCt<S: TFHESchema, P: LWE_CT_Params<S>>(GLWECiphertext<S, P>);
 #[derive(Debug, Clone)]
 struct BoolCt<S: TFHESchema, P: LWE_CT_Params<S>>(GLWECiphertext<S, P>);
 
+#[derive(Debug)]
 struct StringCt<S: TFHESchema, P: LWE_CT_Params<S>>(Vec<CharCt<S, P>>);
 
+#[derive(Debug)]
 struct SecretKey<S: TFHESchema, P: LWE_CT_Params<S>>(GLWE_secret_key<S, P>);
 impl<S: TFHESchema, P: LWE_CT_Params<S>> SecretKey<S, P>
 where
@@ -98,11 +122,11 @@ where
         StringCt(v)
     }
 
-    pub fn encrypt_char(&self, s: u64) -> CharCt<S, P> {
+    pub fn encrypt_char(&self, c: u64) -> CharCt<S, P> {
         CharCt(
             self.0
                 .encrypt(&Polynomial::<{ P::POLINOMIAL_SIZE }>::new_monomial(
-                    s << (S::GLWE_Q - S::GLEV_B),
+                    c << (S::GLWE_Q - S::GLEV_B),
                     0,
                 )),
         )
@@ -134,6 +158,13 @@ where
     }
 }
 
+fn encode_char(c: u64) -> u64 {
+    c - 100
+}
+
+fn decode_char(c: u64) -> u64 {
+    c + 100
+}
 struct EvalKey<S: TFHESchema, PLwe: LWE_CT_Params<S>, PGlwe: LWE_CT_Params<S>>(
     EvaluatingKey<S, PLwe, PGlwe>,
 );
@@ -147,7 +178,7 @@ where
     [(); S::GLEV_L]: Sized,
 {
     pub fn is_chars_eq(&self, ct: &CharCt<S, PLwe>, char: u64) -> BoolCt<S, PLwe> {
-        let f = |v: u64| if v == char { 1 } else { 0 };
+        let f = |v: u64| if v == encode_char(char) { 1 } else { 0 };
         let is_eq = self.0.eval(&ct.0, &f);
         BoolCt(is_eq)
     }
@@ -158,11 +189,11 @@ where
         s: &String,
     ) -> BoolCt<S, PLwe> {
         let mut acc: BoolCt<S, PLwe> =
-            self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64 - 100);
+            self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64);
         for i in 1..s.len() {
             acc = self.and(
                 &acc,
-                &self.is_chars_eq(&ct.0[i], s.chars().nth(i).unwrap() as u64 - 100),
+                &self.is_chars_eq(&ct.0[i], s.chars().nth(i).unwrap() as u64),
             );
         }
 
