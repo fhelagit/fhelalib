@@ -159,7 +159,7 @@ where
     ) -> BoolCt<S, PLwe> {
         let mut acc: BoolCt<S, PLwe> =
             self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64 - 100);
-        for i in 1..2 {
+        for i in 1..s.len() {
             acc = self.and(
                 &acc,
                 &self.is_chars_eq(&ct.0[i], s.chars().nth(i).unwrap() as u64 - 100),
