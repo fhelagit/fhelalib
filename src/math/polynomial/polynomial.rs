@@ -64,6 +64,14 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial::new(self.0.iter().map(|v| v << steps).collect())
     }
 
+    pub fn round(&self, divisor: u64) -> Self {
+        Polynomial::new(self.0.iter().map(|v| v.wrapping_add(divisor>>1)/divisor).collect())
+    }
+
+    pub fn rem(&self, divisor: u64) -> Self {
+        Polynomial::new(self.0.iter().map(|v| v % divisor).collect())
+    }
+
     pub fn swicth_order<const NEW_OREDER: usize>(&self) -> Polynomial<NEW_OREDER> {
         assert_eq!(NEW_OREDER, ORDER);
         return Polynomial::<NEW_OREDER>::new(self.0.clone());

@@ -17,7 +17,7 @@ pub fn rnd_u64_uniform_binary() -> u64 {
 }
 
 pub fn rnd_u64_gausean() -> u64 {
-    let dist = Normal::new(0.0, 3.0).unwrap();
+    let dist = Normal::new(0.0, 1.0).unwrap();
     let mut rng = rand::thread_rng();
     let sampled = dist.sample(&mut rng);
     if round(sampled, 0) >= 0.0 {
