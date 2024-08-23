@@ -17,6 +17,7 @@ use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
 // use std::marker::PhantomData;
+const Q: usize = 18446744073709547521-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
 
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
@@ -36,12 +37,11 @@ impl<const ORDER: usize> Polynomial<ORDER> {
     #[allow(dead_code)]
     pub fn new_monomial(value: u64, position: usize) -> Self {
         let mut p = Polynomial::<ORDER>::new_zero();
-        assert!(
-            ORDER > position,
-            "Attempt to create monomial with order {} and degree {position}",
-            ORDER
-        );
-        p[position] = value;
+        if position >= ORDER {
+            p[position % ORDER] = value;
+        } else {
+            p[position] = value;
+        }
         p
     }
 
@@ -65,7 +65,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
     }
 
     pub fn round(&self, divisor: u64) -> Self {
-        Polynomial::new(self.0.iter().map(|v| v.wrapping_add(divisor>>1)/divisor).collect())
+        Polynomial::new(self.0.iter().map(|v| (((*v as u128 + (divisor>>1) as u128) % (Q as u128 +1)) / divisor as u128) as u64).collect())
     }
 
     pub fn rem(&self, divisor: u64) -> Self {
@@ -160,7 +160,8 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
         let mut sums = [0; ORDER].to_vec();
 
         for i in 0..ORDER {
-            sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
+            // sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
+            sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
         }
         Polynomial::new(sums)
     }
@@ -170,12 +171,20 @@ impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 
     fn sub(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
-        let mut sums = [0; ORDER].to_vec();
+        let mut diffs = [0; ORDER].to_vec();
 
         for i in 0..ORDER {
-            sums[i] = self.coeffs()[i].wrapping_sub(rhs.coeffs()[i]);
+            // diffs[i] = self[i].wrapping_sub(rhs[i]);
+            if self[i] >= rhs[i] {
+                diffs[i] = ((self[i] as u128 - rhs[i] as u128) % (Q as u128 + 1)) as u64;
+            } else {
+                // diffs[i] = ((Q as u128 + self[i] as u128 - rhs[i] as u128) % Q as u128) as u64;
+                diffs[i] = (Q as u128+1 - (rhs[i] as u128 - self[i] as u128) ) as u64;
+            }
+            
         }
-        Polynomial::new(sums)
+        // println!("sub. lhs: {}, rhs: {}, diff1: {}, diff2: {}", self[0], rhs[0], rhs[0] as u128 - self[0] as u128, (Q as u128+1 - (rhs[0] as u128 - self[0] as u128) ));
+        Polynomial::new(diffs)
     }
 }
 
@@ -272,10 +281,12 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
-        // if ORDER == 1 {
-        //     return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
-        // }
-        polymul_pwc_naive(self, rhs)
+        if ORDER == 1 {
+            // return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
+            return Polynomial::new_monomial(((self[0] as u128 * rhs[0] as u128) % (Q as u128 + 1)) as u64, 0);
+        }
+        // polymul_pwc_naive(self, rhs)
+        polymul_pwc(self, rhs)
     }
 }
 
@@ -349,6 +360,7 @@ fn polymul_nwc<const ORDER: usize>(
     let psi: u64 = 3618691915695908984;
     let psi_inv: u64 = 6610778516587902706;
 
+
     // 32
     // let q: u64       = 18446744073709550593;
     // let w: u64       = 13709748631181643000;
@@ -401,11 +413,11 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
     fn pt_polymul_naive_expected(a_ in any::<[u16; nwc_n]>().prop_map(|v| Polynomial::<nwc_n>::new(v.iter().map(|x| *x as u64).collect::<Vec<u64>>()))) {
-        let a = a_.clone();
-        let b = Polynomial::<nwc_n>::new_monomial(5, 0);
+        let a = Polynomial::<pwc_n>::new_monomial(5, 0); //a_.clone();
+        let b = Polynomial::<pwc_n>::new_monomial(1, 0);
 
-        let c_naive = polymul_nwc_naive(&a, &b);
-        prop_assert_eq!(dbg!(Polynomial::new(a.into_iter().map(|v| v*5).collect())), dbg!(c_naive));
+        let c_naive = polymul_pwc_naive(&a, &b);
+        prop_assert_eq!(dbg!(Polynomial::new(a.into_iter().map(|v| v*1).collect())), dbg!(c_naive));
         // assert_eq!(1,2)
 
     }
@@ -530,36 +542,44 @@ fn polymul_pwc<const ORDER: usize>(
     b: &Polynomial<ORDER>,
 ) -> Polynomial<ORDER> {
     // 2048
-    // let q: u64 = 18446744073709547521;
-    // let w: u64 = 13871691955188213127;
-    // let w_inv: u64 = 7236465593496852055;
-    // const n: usize = 2048;
-    // let n_inv: u64 = 18437736874454806531;
+    let q: u64 = 18446744073709547521;
+    let w: u64 = 13871691955188213127;
+    let w_inv: u64 = 7236465593496852055;
+    const n: usize = 2048;
+    let n_inv: u64 = 18437736874454806531;
+
+    // 256
+    // let q: u64 = 18446744073709550593;
+    // let w: u64 = 12400524647368804660;
+    // let w_inv: u64 = 14137232041405300922;
+    // const n: usize = 256;
+    // let n_inv: u64 = 18374686479671622661;
+
 
     // 32
-    let q: u64 = 18446744073709551521;
-    let w: u64 = 2250779155537587393;
-    let w_inv: u64 = 18006900733222636570;
-    const n: usize = 32;
-    let n_inv: u64 = 17870283321406128036;
+    // let q: u64 = 18446744073709551521;
+    // let w: u64 = 2250779155537587393;
+    // let w_inv: u64 = 18006900733222636570;
+    // const n: usize = 32;
+    // let n_inv: u64 = 17870283321406128036;
 
     // mod switch
 
-    let mut a_: Vec<u64> = a
-        .coeffs()
-        .iter()
-        .map(|v| mod_switch(*v, 1 << 64, q as u128))
-        .collect();
-    let mut b_: Vec<u64> = b
-        .coeffs()
-        .iter()
-        .map(|v| mod_switch(*v, 1 << 64, q as u128))
-        .collect();
+    // let mut a_: Vec<u64> = a
+    //     .coeffs()
+    //     .iter()
+    //     .map(|v| mod_switch(*v, 1 << 64, q as u128))
+    //     .collect();
+    // let mut b_: Vec<u64> = b
+    //     .coeffs()
+    //     .iter()
+    //     .map(|v| mod_switch(*v, 1 << 64, q as u128))
+    //     .collect();
 
     let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
-    ct_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
-    ct_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
+    ct_ntt(&mut a.coeffs(), n, q, w, &mut a_ntt_form).unwrap();
+    ct_ntt(&mut b.coeffs(), n, q, w, &mut b_ntt_form).unwrap();
 
     let mut c_ntt_form: Vec<u64> = [0; n].to_vec();
     let mut c_regular_form: Vec<u64> = [0; n].to_vec();
@@ -572,11 +592,11 @@ fn polymul_pwc<const ORDER: usize>(
 
     // mod switch back
 
-    let c: Vec<u64> = c_regular_form
-        .iter()
-        .map(|v| mod_switch(*v, q as u128, 1 << 64))
-        .collect();
-    Polynomial::new(c)
+    // let c: Vec<u64> = c_regular_form
+    //     .iter()
+    //     .map(|v| mod_switch(*v, q as u128, 1 << 64))
+    //     .collect();
+    Polynomial::new(c_regular_form)
 }
 
 fn polymul_pwc_naive<const ORDER: usize>(
@@ -590,13 +610,17 @@ fn polymul_pwc_naive<const ORDER: usize>(
 
     for i in 0..ORDER {
         for j in 0..ORDER {
-            c[i + j] = c[i + j].wrapping_add(a[i].wrapping_mul(b[j]));
+            // c[i + j] = c[i + j].wrapping_add(a[i].wrapping_mul(b[j]));
+            c[i + j] = (c[i + j] as u128 + ((a[i] as u128 * b[j] as u128) % (Q as u128 + 1)) % (Q as u128 + 1)) as u64;
         }
     }
 
     let mut d: Vec<u64> = Vec::with_capacity(ORDER);
     for i in 0..ORDER {
-        d.push(c[i].wrapping_add(c[i + ORDER]));
+        // d.push(c[i].wrapping_add(c[i + ORDER]));
+        d.push(
+            ((c[i] as u128 + c[i + ORDER] as u128) % (Q as u128 + 1)) as u64
+        );
     }
 
     Polynomial::new(d)

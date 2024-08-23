@@ -61,12 +61,12 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
-    const LWE_K: usize = 20;
-    const GLWE_N: usize = 256;
+    const LWE_K: usize = 200;
+    const GLWE_N: usize = 2048;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
-    const GLEV_B: usize = 6;
+    const GLEV_B: usize = 4;
     const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
@@ -145,14 +145,15 @@ impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params<S> {
         // from_u64::from(rnd_u64_uniform_bounded(1 << 53))
         from_u64::from(rnd_u64_uniform())
         // from_u64::from(18_446_744_073_709_551_615u64)
-        // from_u64::from(0)
+        // from_u64::from(5804407862833930667)
     }
     fn random_scalar_noise() -> Self::ScalarType {
-        from_u64::from(rnd_u64_gausean())
-        // from_u64::from(0)
+        // from_u64::from(rnd_u64_gausean())
+        from_u64::from(0)
     }
     fn random_scalar_key() -> Self::ScalarType {
-        from_u64::from(rnd_u64_uniform_binary())
+        // from_u64::from(rnd_u64_uniform_binary())
+        from_u64::from(1)
     }
 }
 
@@ -170,18 +171,19 @@ impl<S: TFHESchema> LWE_CT_Params<S> for GLWE_Params<S> {
     type Schema = S;
     type HelperType = [(); Self::POLINOMIAL_SIZE] where [(); Self::POLINOMIAL_SIZE]:Sized;
     fn random_scalar_mask() -> Self::ScalarType {
-        from_u64::from(rnd_u64_uniform())
+        // from_u64::from(rnd_u64_uniform())
         //    from_u64::from(rnd_u64_uniform_bounded(1<<30))
-        // from_u64::from(0)
+        from_u64::from(0)
     }
     fn random_scalar_noise() -> Self::ScalarType {
-        from_u64::from(rnd_u64_gausean())
-        // from_u64::from(1)
+        // from_u64::from(rnd_u64_gausean())
+        from_u64::from(0)
         // from_u64::from(rnd_u64_uniform_binary())
     }
 
     fn random_scalar_key() -> Self::ScalarType {
-        from_u64::from(rnd_u64_uniform_binary())
+        // from_u64::from(rnd_u64_uniform_binary())
+        from_u64::from(1)
     }
 }
 

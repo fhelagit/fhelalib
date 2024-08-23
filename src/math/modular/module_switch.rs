@@ -1,11 +1,15 @@
 #[cfg(test)]
 use proptest::prelude::*;
 
+use crate::random::random::rnd_u64_uniform_binary;
+
 pub fn rounded_div(dividend: u128, divisor: u128) -> u128 {
     // if dividend ^ divisor >= 0 {
-    // println!("dividend: {:#x?}", dividend);
-    // println!("divisor: {:#x?}", divisor);
-    ((dividend).wrapping_add(divisor / 2)).wrapping_div(divisor)
+    println!("rounded_div.dividend: {:#x?}", dividend);
+    println!("rounded_div.divisor: {:#x?}", divisor);
+    // println!("rounded_div.divisor/2: {:#x?}", divisor/2);
+    // println!("rounded_res: {:#x?}",  ((dividend).wrapping_add(divisor / 2)) / (divisor));
+    ((dividend).wrapping_add(divisor / 2)) / (divisor)
     // } else {
     //     // println!("2");
     //     (dividend.wrapping_sub(divisor / 2)) / divisor
@@ -13,8 +17,14 @@ pub fn rounded_div(dividend: u128, divisor: u128) -> u128 {
 }
 
 pub fn mod_switch(a: u64, old_q: u128, new_q: u128) -> u64 {
-    let nv: u128 = a as u128 * new_q as u128 / old_q as u128;
-    // let nv: u128 = a as u128 / rounded_div(old_q as u128, new_q as u128);
+    // let nv: u128 = a as u128 * new_q as u128 / old_q as u128;
+    let nv: u128 = rounded_div(a as u128 , (old_q as u128 / new_q as u128));
+    // let mut nv: u64 = a;
+    // nv >>= 64 - 11 - 1 + 0;
+
+    // nv += 1;
+
+    // nv >>= 1;
     nv as u64
 }
 
