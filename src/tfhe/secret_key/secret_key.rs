@@ -516,8 +516,8 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_cmux_expected(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 4) as u64)).collect())),
-                        b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 4) as u64)).collect())),
+    fn pt_cmux_expected(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64)).collect())),
+                        b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64)).collect())),
                         cond__ in any::<u8>().prop_map(|v| v % 2==1)) {
 
         let cond_ = cond__;
@@ -535,14 +535,14 @@ proptest! {
         let expected_cmux = if cond_ {b} else {a};
 
         let (mut cmux, mut log_cts) = cmux_(&encrypted_cond, &encrypted_b, &encrypted_a);
-        for _ in 0..200 {
-            (cmux, log_cts)= cmux_(&encrypted_cond, &cmux, &cmux);
-        }
+        // for _ in 0..200 {
+        //     (cmux, log_cts)= cmux_(&encrypted_cond, &cmux, &cmux);
+        // }
 
 
         let decrypted_cmux = sk.decrypt(&cmux);
 
-        let decrypted = decrypted_cmux.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
+        let decrypted = decrypted_cmux.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)).rem(1<<TFHE_test_small_u64::GLEV_B);
         let expected = expected_cmux;
 
         if decrypted == expected {

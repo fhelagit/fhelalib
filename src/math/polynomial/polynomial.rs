@@ -17,7 +17,7 @@ use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
 // use std::marker::PhantomData;
-const Q: usize = 18446744073709547521-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
+const Q: usize = u64::MAX as usize;//18446744073709547521-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
 
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
@@ -285,8 +285,8 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
             // return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
             return Polynomial::new_monomial(((self[0] as u128 * rhs[0] as u128) % (Q as u128 + 1)) as u64, 0);
         }
-        // polymul_pwc_naive(self, rhs)
-        polymul_pwc(self, rhs)
+        polymul_pwc_naive(self, rhs)
+        // polymul_pwc(self, rhs)
     }
 }
 
