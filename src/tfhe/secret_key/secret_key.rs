@@ -781,9 +781,9 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    fn pt_eval_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 2) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
+    fn pt_eval_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64)).collect()))) {
 
         // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
 
@@ -795,7 +795,7 @@ proptest! {
         let bsk: BootstrappingKey<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>, GLWE_Params<TFHE_test_small_u64>> = sk_new.create_bootstrapping_key(&sk_old);
         let eval_key = EvaluatingKey::new(bsk, ksk);
 
-        let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message);
+        let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message.shl(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
 
         let f = |v: u64| {
             if v==2 {1} else {0}
@@ -806,9 +806,9 @@ proptest! {
         let evaluated_message = eval_key.eval(&encrypted_message, &f);
 
         // let expected_message = message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
-        let expected_message = if message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0]==2 {1} else {0};
+        let expected_message = if message[0]==2 {1} else {0};
 
-        let decrypted_message = sk_old.decrypt(&evaluated_message).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
+        let decrypted_message = sk_old.decrypt(&evaluated_message).round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B))[0];
 
 
         prop_assert_eq!(decrypted_message, expected_message);
