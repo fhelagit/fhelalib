@@ -105,7 +105,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
 
         let body_ = mod_switch(
             ct.get_poly_by_index(P_lwe::MASK_SIZE)[0],
-            18446744073709550593, //1 << 64,
+            1 << 64,
             P_glwe::POLINOMIAL_SIZE as u128,
         );
         // println!(
@@ -130,7 +130,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         for i in 0..P_lwe::MASK_SIZE {
             let a_i_ = mod_switch(
                 ct.get_poly_by_index(i)[0],
-                18446744073709550593, //1 << 64,
+                1 << 64,
                 P_glwe::POLINOMIAL_SIZE as u128,
             ); 
             //(ct.get_poly_by_index(i)[0] >> (64-7+3)) << 3;//mod_switch(ct.get_poly_by_index(i)[0], 1<<64, P_glwe::POLINOMIAL_SIZE as u128);
