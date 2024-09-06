@@ -17,8 +17,8 @@ use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
 // use std::marker::PhantomData;
-const Q: usize = u64::MAX as usize;//18446744073709547521-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
-
+const Q: usize = 18446744073709547521-1;//18437455399478099969-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
+// const Q: usize = u64::MAX as usize;
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct Polynomial<const ORDER: usize>(Vec<u64>);
@@ -61,7 +61,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial::new(self.0.iter().map(|v| v >> steps).collect())
     }
     pub fn shl(&self, steps: usize) -> Self {
-        Polynomial::new(self.0.iter().map(|v| v << steps).collect())
+        Polynomial::new(self.0.iter().map(|v| (((*v as u128) << steps) % (Q as u128 +1)) as u64).collect())
     }
 
     pub fn round(&self, divisor: u64) -> Self {
@@ -285,8 +285,8 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
             // return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
             return Polynomial::new_monomial(((self[0] as u128 * rhs[0] as u128) % (Q as u128 + 1)) as u64, 0);
         }
-        polymul_pwc_naive(self, rhs)
-        // polymul_pwc(self, rhs)
+        // polymul_pwc_naive(self, rhs)
+        polymul_pwc(self, rhs)
     }
 }
 
@@ -542,18 +542,18 @@ fn polymul_pwc<const ORDER: usize>(
     b: &Polynomial<ORDER>,
 ) -> Polynomial<ORDER> {
     // 2048
-    let q: u64 = 18446744073709547521;
-    let w: u64 = 13871691955188213127;
-    let w_inv: u64 = 7236465593496852055;
-    const n: usize = 2048;
-    let n_inv: u64 = 18437736874454806531;
+    // let q: u64 = 18446744073709547521;
+    // let w: u64 = 13871691955188213127;
+    // let w_inv: u64 = 7236465593496852055;
+    // const n: usize = 2048;
+    // let n_inv: u64 = 18437736874454806531;
 
     // 256
-    // let q: u64 = 18446744073709550593;
-    // let w: u64 = 12400524647368804660;
-    // let w_inv: u64 = 14137232041405300922;
-    // const n: usize = 256;
-    // let n_inv: u64 = 18374686479671622661;
+    let q: u64 = 18446744073709550593;
+    let w: u64 = 12400524647368804660;
+    let w_inv: u64 = 14137232041405300922;
+    const n: usize = 256;
+    let n_inv: u64 = 18374686479671622661;
 
 
     // 32
@@ -803,6 +803,8 @@ pub fn decompose_polynomial<
 
 fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
     let pos = (GLEV_L * GLEV_B) as u32;
+
+    
 
     let bit = if pos == 64 {
         0

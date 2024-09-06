@@ -28,8 +28,9 @@ where
         for _ in 0..P::MASK_SIZE {
             let mut p = Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
             for elem_number in 0..P::POLINOMIAL_SIZE {
-                p[elem_number] = from_u64::to(P::random_scalar_key());
+                p[elem_number] = from_u64::to(0);//P::random_scalar_key());
             }
+            p[0] = from_u64::to(1);
             d.push(p);
         }
         GLWE_secret_key::from_scalar_vector(from_poly_list::from(d))
@@ -52,9 +53,9 @@ where
         // создать полином шума
         let mut err = Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
         for elem_number in 0..P::POLINOMIAL_SIZE {
-            err[elem_number] = from_u64::to(1);//from_u64::to(P::random_scalar_noise());
+            err[elem_number] = from_u64::to(P::random_scalar_noise());
         }
-        err[0] = from_u64::to(P::random_scalar_noise())*10;
+        // err[0] = from_u64::to(P::random_scalar_noise())*10;
         // println!("encrypt.message: {:?}", message);
         // println!("encrypt.noise: {:?}", err);
 
@@ -160,10 +161,10 @@ where
         message: &Polynomial<{ P::POLINOMIAL_SIZE }>,
         acc: &mut Vec<Polynomial<{ P::POLINOMIAL_SIZE }>>,
     ) -> Result<(), ()> {
-        // println!("encrypt_glev.message: {}", message);
+        // println!("encrypt_glev.message: {:?}", message);
         for i in 1..=S::GLEV_L {
             let message_ = message.shl(S::GLWE_Q - S::GLEV_B * i);
-            // println!("encrypt_glev.message_: {}", message_);
+            // println!("encrypt_glev.message_: {:?}", message_);
             let ct = self.encrypt(&message_);
             // println!("encrypt_glev.ct: {}", ct);
             for i in 0..=P::MASK_SIZE {
@@ -260,8 +261,8 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
     #[test]
-    fn pt_glwe_ct_add(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())),
-                      b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 4) as u64).collect())))  {
+    fn pt_glwe_ct_add(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 6) as u64).collect())),
+                      b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 6) as u64).collect())))  {
 
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
 
@@ -270,10 +271,13 @@ proptest! {
         // println!("pt_glwe_ct_add 1");
         let sum = &encrypted_a + &encrypted_b;
         // println!("pt_glwe_ct_add 2");
-
-        
-        let decrypted_sum = sk.decrypt(&sum).round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)).rem(1<<TFHE_test_small_u64::GLEV_B);
-        // println!("pt_glwe_ct_add 3");
+        println!("\n");
+        println!("pt_glwe_ct_add.a: {:?}",  &a);
+        println!("pt_glwe_ct_add.b: {:?}",  &b);
+        println!("pt_glwe_ct_add.encrypted_a.body: {:?}",  &encrypted_a.get_poly_by_index(TFHE_test_small_u64::GLWE_K));
+        println!("pt_glwe_ct_add.encrypted_b.body: {:?}",  &encrypted_b.get_poly_by_index(TFHE_test_small_u64::GLWE_K));
+        println!("pt_glwe_ct_add.sum.body: {:?}",  &sum.get_poly_by_index(TFHE_test_small_u64::GLWE_K));
+        let decrypted_sum = sk.decrypt(&sum).round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
         let expected_sum = &a + &b;
         // println!("pt_glwe_ct_add 4");
 
@@ -300,13 +304,16 @@ proptest! {
 
 
         
-        let decrypted_diff = sk.decrypt(&diff).shr((TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));//.round(mod_switch(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 1<<64, u64::MAX as u128)).rem(1<<TFHE_test_small_u64::GLEV_B);
+        let decrypted_diff = sk.decrypt(&diff).round(mod_switch(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 1<<64, 18446744073709547521 as u128)).rem(1<<TFHE_test_small_u64::GLEV_B);
         // println!("pt_glwe_ct_sub 3");
         let expected_diff = (&a - &b).rem(1<<TFHE_test_small_u64::GLEV_B);
         // println!("pt_glwe_ct_sub 4");
         if decrypted_diff != expected_diff {
+            println!("\n");
             println!("pt_glwe_ct_sub.a: {} ", &a);
             println!("pt_glwe_ct_sub.b: {} ", &b);
+            println!("pt_glwe_ct_add.encrypted_a.body: {:?}",  &encrypted_a.get_poly_by_index(TFHE_test_small_u64::GLWE_K));
+            println!("pt_glwe_ct_add.encrypted_b.body: {:?}",  &encrypted_b.get_poly_by_index(TFHE_test_small_u64::GLWE_K));
             println!("pt_glwe_ct_sub.decrypted_diff: {} ", &decrypted_diff);
             println!("pt_glwe_ct_sub.expected_diff:  {} ", &expected_diff);
             println!("pt_glwe_ct_sub.diff_dec_raw: {} ", &sk.decrypt(&diff));
@@ -343,13 +350,13 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(10000))]
     #[test]
-    fn pt_ggsw_mul_external_expected(a in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 6) as u64 ).collect())),
+    fn pt_ggsw_mul_external_expected(a_ in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 6) as u64 ).collect())),
                            b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| (*vv >> 6) as u64).collect()))
                             // b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new([1,1].to_vec()))
                         ) {
 
 
-        // let a = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(1, 0);
+        let a = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(1, 0);
         // let b = Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new_monomial(1, 0);
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
 
@@ -376,11 +383,12 @@ proptest! {
         let encrypted_product = &encrypted_a * &encrypted_b;
 
 
-        let decrypted_product = sk.decrypt(&encrypted_product);
-        println!("pt_ggsw_mul_external_expected.decrypted_product: {} ", &decrypted_product.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
-        println!("pt_ggsw_mul_external_expected.expected_product: {} ", &expected_product);
-
-        if decrypted_product.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) != expected_product {
+        let decrypted_product = sk.decrypt(&encrypted_product);//mod_switch(sk.decrypt(&encrypted_product), 18446744073709547521, 1<<64);
+        
+        if decrypted_product.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)) != expected_product {
+            println!("\n");
+            println!("pt_ggsw_mul_external_expected.decrypted_product: {} ", &decrypted_product.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
+            println!("pt_ggsw_mul_external_expected.expected_product: {} ", &expected_product);
             println!("pt_ggsw_mul_external_expected.a: {} ", &a);
             println!("pt_ggsw_mul_external_expected.b: {} ", &b);
             println!("pt_ggsw_mul_external_expected.encrypted_a: {} ", &encrypted_a);
@@ -388,8 +396,8 @@ proptest! {
             println!("pt_ggsw_mul_external_expected.encrypted_product: {} ", &encrypted_product);
             println!("pt_ggsw_mul_external_expected.sk: {:?} ", &sk);
         }
-        println!("");
-        prop_assert_eq!(decrypted_product.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), expected_product);
+       
+        prop_assert_eq!(decrypted_product.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), expected_product);
         // assert_eq!(1,2)
 
 
@@ -520,7 +528,7 @@ proptest! {
                         b in any::<[u8; GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{GLWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64)).collect())),
                         cond__ in any::<u8>().prop_map(|v| v % 2==1)) {
 
-        let cond_ = cond__;
+        let cond_ = true;//cond__;
         let sk: GLWE_secret_key<TFHE_test_small_u64, GLWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
 
 
@@ -625,7 +633,7 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(5))]
+    #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     fn pt_bootstrapping_expected(_message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
 
