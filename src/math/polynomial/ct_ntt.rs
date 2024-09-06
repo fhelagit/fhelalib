@@ -209,9 +209,9 @@ pub fn ct_ntt(
         // let mut b: Vec<ntt_data_size> = Vec::new();
         let mut w_cur = 1;
 
-        for _ in 0..n {
-            ntt_form.push(0);
-        }
+        // for _ in 0..n {
+        //     ntt_form.push(0);
+        // }
 
         let mut a_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
         let mut a_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
@@ -227,6 +227,8 @@ pub fn ct_ntt(
 
         for i in 0..n_2 {
             //		xil_printf("CT_ntt 21\n");
+            ntt_form.push(0);
+            ntt_form.push(0);
             a_even.push(regular_form[2 * i]);
             a_odd.push(regular_form[2 * i + 1]);
         }
