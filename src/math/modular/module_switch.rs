@@ -5,8 +5,8 @@ use crate::random::random::rnd_u64_uniform_binary;
 
 pub fn rounded_div(dividend: u128, divisor: u128) -> u128 {
     // if dividend ^ divisor >= 0 {
-    println!("rounded_div.dividend: {:#x?}", dividend);
-    println!("rounded_div.divisor: {:#x?}", divisor);
+    // println!("rounded_div.dividend: {:#x?}", dividend);
+    // println!("rounded_div.divisor: {:#x?}", divisor);
     // println!("rounded_div.divisor/2: {:#x?}", divisor/2);
     // println!("rounded_res: {:#x?}",  ((dividend).wrapping_add(divisor / 2)) / (divisor));
     ((dividend).wrapping_add(divisor / 2)) / (divisor)
