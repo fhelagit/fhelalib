@@ -675,9 +675,9 @@ proptest! {
 
                 println!("log_cts.{} decrypted: {:?}", log_cts[i].0, sk_new.decrypt(&log_cts[i].1).round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
             }
-            prop_assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
+            // prop_assert_eq!(dbg!(decrypted_message), dbg!(expected_message));
         }
-        // assert_eq!(decrypted_message, xpected_message);
+        prop_assert_eq!(decrypted_message, expected_message);
         // assert_eq!(1,2)
 
 

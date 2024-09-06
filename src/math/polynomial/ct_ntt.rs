@@ -192,9 +192,9 @@ pub fn ct_ntt(
 ) -> Result<(), ()> {
     if n == 2 {
         //		xil_printf("CT_ntt 1\n");
-        ntt_form[0] = mod_sum(regular_form[0], regular_form[1], q);
+        ntt_form.push(mod_sum(regular_form[0], regular_form[1], q));
         //		xil_printf("CT_ntt 11\n");
-        ntt_form[1] = mod_sub(regular_form[0], regular_form[1], q);
+        ntt_form.push(mod_sub(regular_form[0], regular_form[1], q));
         Ok(())
     //		xil_printf("CT_ntt 12\n");
 
@@ -206,29 +206,29 @@ pub fn ct_ntt(
     } else {
         //		xil_printf("CT_ntt 2\n");
         let n_2 = n / 2;
-        let mut b: Vec<ntt_data_size> = Vec::new();
+        // let mut b: Vec<ntt_data_size> = Vec::new();
         let mut w_cur = 1;
 
         for _ in 0..n {
-            b.push(0);
+            ntt_form.push(0);
         }
 
-        let mut a_even: Vec<ntt_data_size> = Vec::new();
-        let mut a_odd: Vec<ntt_data_size> = Vec::new();
-        let mut b_even: Vec<ntt_data_size> = Vec::new();
-        let mut b_odd: Vec<ntt_data_size> = Vec::new();
+        let mut a_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+        let mut a_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+        let mut b_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+        let mut b_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
 
-        for _ in 0..n_2 {
-            a_even.push(0);
-            a_odd.push(0);
-            b_even.push(0);
-            b_odd.push(0);
-        }
+        // for _ in 0..n_2 {
+        //     // a_even.push(0);
+        //     // a_odd.push(0);
+        //     b_even.push(0);
+        //     b_odd.push(0);
+        // }
 
         for i in 0..n_2 {
             //		xil_printf("CT_ntt 21\n");
-            a_even[i] = regular_form[2 * i];
-            a_odd[i] = regular_form[2 * i + 1];
+            a_even.push(regular_form[2 * i]);
+            a_odd.push(regular_form[2 * i + 1]);
         }
 
         let w_2: ntt_data_size = mod_mul(w, w, q);
@@ -241,19 +241,19 @@ pub fn ct_ntt(
             //			xil_printf("CT_ntt 222: %u\n", i);
             let b_i_mul_w: ntt_data_size = mod_mul(w_cur, b_odd[i], q);
             //			xil_printf("CT_ntt 223\n");
-            b[i] = mod_sum(b_even[i], b_i_mul_w, q);
+            ntt_form[i] = mod_sum(b_even[i], b_i_mul_w, q);
             //			xil_printf("CT_ntt 224\n");
-            b[i + n_2] = mod_sub(b_even[i], b_i_mul_w, q);
+            ntt_form[i + n_2] = mod_sub(b_even[i], b_i_mul_w, q);
             //			xil_printf("CT_ntt 225\n");
             w_cur = mod_mul(w_cur, w, q);
             //			xil_printf("CT_ntt 226\n");
         }
         //		xil_printf("CT_ntt 227\n");
 
-        for i in 0..n {
-            //	xil_printf("CT_ntt 23\n");
-            ntt_form[i] = b[i];
-        }
+        // for i in 0..n {
+        //     //	xil_printf("CT_ntt 23\n");
+        //     ntt_form.push(b[i]);
+        // }
         Ok(())
         //		xil_printf("CT_ntt 228\n");
     }

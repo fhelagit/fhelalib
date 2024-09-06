@@ -576,12 +576,12 @@ fn polymul_pwc<const ORDER: usize>(
     //     .map(|v| mod_switch(*v, 1 << 64, q as u128))
     //     .collect();
 
-    let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
-    let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
+    let mut a_ntt_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
+    let mut b_ntt_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
     ct_ntt(&mut a.coeffs(), n, q, w, &mut a_ntt_form).unwrap();
     ct_ntt(&mut b.coeffs(), n, q, w, &mut b_ntt_form).unwrap();
 
-    let mut c_regular_form: Vec<u64> = [0; n].to_vec();
+    let mut c_regular_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
 
     for i in 0..n {
         a_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
