@@ -169,6 +169,17 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     }
 }
 
+impl<const ORDER: usize> ops::AddAssign<&Polynomial<ORDER>> for Polynomial<ORDER> {
+
+    fn add_assign(&mut self, rhs: &Polynomial<ORDER>) {
+        for i in 0..ORDER {
+            // sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
+            (*self)[i] = mod_sum(self[i], rhs[i], Q as u64 + 1);
+          // sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
+        }
+    }
+}
+
 impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     type Output = Polynomial<ORDER>;
 

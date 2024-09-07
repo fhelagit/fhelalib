@@ -122,9 +122,7 @@ where
 
                 for poly_number in 0..=P::MASK_SIZE {
                     // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
-                    acc[poly_number] = &acc[poly_number]
-                        + &(&dec[glwe_number]
-                            * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
+                    acc[poly_number] += &(&dec[glwe_number] * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
                 }
             }
         }
@@ -132,6 +130,8 @@ where
         GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
     }
 }
+
+
 
 #[cfg(test)]
 proptest! {
