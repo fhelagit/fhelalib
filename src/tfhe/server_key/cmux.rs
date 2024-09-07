@@ -16,9 +16,9 @@ where
     [(); S::GLWE_Q]: Sized,
 {
     let diff = if_true - if_false;
-    let mul = cond * &diff;
-    let res = &mul + if_false;
-    res
+    let mut mul = cond * &diff;
+    mul += if_false;
+    mul
 }
 
 
