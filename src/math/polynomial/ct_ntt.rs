@@ -17,12 +17,11 @@ proptest! {
         let w_inv: u64 = 7236465593496852055;
         let n_inv: u64 = 18437736874454806531;
         let mut regular_form = regular_form_.clone();
-        let mut nnt_form = [0; n].to_vec();
 
-        ct_ntt(&mut regular_form, n,  q, w, &mut nnt_form).unwrap();
-        println!("1. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
-        ct_intt(&mut nnt_form, n,  q, w_inv, n_inv, &mut regular_form).unwrap();
-        println!("2. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
+        ct_ntt(&mut regular_form, n,  q, w).unwrap();
+        println!("1. reg_form: {:?}, \n   ntt_form: {:?}", regular_form_, regular_form);
+        ct_intt(&mut regular_form, n,  q, w_inv, n_inv).unwrap();
+        println!("2. reg_form: {:?}, \n   ntt_form: {:?}", regular_form_, regular_form);
         prop_assert_eq!(regular_form_, regular_form)
 
 
@@ -37,12 +36,11 @@ fn test_ntt_ones() {
     let q: u64 = 18446744073709551521;
     let w: u64 = 2250779155537587393;
     let mut regular_form = [1; n].to_vec();
-    let mut ntt_form = [0; n].to_vec();
     let mut expected_ntt_form = [0; n].to_vec();
     expected_ntt_form[0] = n as u64;
 
-    ct_ntt(&mut regular_form, n, q, w, &mut ntt_form).unwrap();
-    assert_eq!(ntt_form, expected_ntt_form)
+    ct_ntt(&mut regular_form, n, q, w).unwrap();
+    assert_eq!(regular_form, expected_ntt_form)
 }
 
 #[test]
@@ -51,13 +49,12 @@ fn test_intt_ones() {
     let q: u64 = 18446744073709551521;
     let w_inv: u64 = 18006900733222636570;
     let n_inv: u64 = 17870283321406128036;
-    let mut regular_form = [0; n].to_vec();
     let mut ntt_form = [0; n].to_vec();
     ntt_form[0] = n as u64;
     let expected_regular_form = [1; n].to_vec();
 
-    ct_intt(&mut ntt_form, n, q, w_inv, n_inv, &mut regular_form).unwrap();
-    assert_eq!(regular_form, expected_regular_form)
+    ct_intt(&mut ntt_form, n, q, w_inv, n_inv).unwrap();
+    assert_eq!(ntt_form, expected_regular_form)
 }
 
 // q = 18446744073709550593
@@ -89,11 +86,11 @@ proptest! {
         let mut regular_form = regular_form_.clone();
         let mut nnt_form = [0; n].to_vec();
 
-        ct_ntt(&mut regular_form, n,  q, w, &mut nnt_form).unwrap();
+        ct_ntt(&mut regular_form, n,  q, w).unwrap();
         println!("1. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
-        ct_intt(&mut nnt_form, n,  q, w_inv, n_inv, &mut regular_form).unwrap();
+        ct_intt(&mut regular_form, n,  q, w_inv, n_inv).unwrap();
         println!("2. reg_form: {:?}, \n   ntt_form: {:?}", regular_form, nnt_form);
-        prop_assert_eq!(regular_form_, regular_form)
+        prop_assert_eq!(regular_form, regular_form_)
 
 
 
@@ -106,12 +103,11 @@ fn test_nc_ntt_ones() {
     let q: u64 = 18446744073709550593;
     let w: u64 = 13709748631181643000;
     let mut regular_form = [1; n].to_vec();
-    let mut ntt_form = [0; n].to_vec();
     let mut expected_ntt_form = [0; n].to_vec();
     expected_ntt_form[0] = n as u64;
 
-    ct_ntt(&mut regular_form, n, q, w, &mut ntt_form).unwrap();
-    assert_eq!(ntt_form, expected_ntt_form)
+    ct_ntt(&mut regular_form, n, q, w).unwrap();
+    assert_eq!(regular_form, expected_ntt_form)
 }
 
 #[test]
@@ -120,13 +116,13 @@ fn test_nc_intt_ones() {
     let q: u64 = 18446744073709550593;
     let w_inv: u64 = 15941171536453849061;
     let n_inv: u64 = 17870283321406127137;
-    let mut regular_form = [0; n].to_vec();
+
     let mut ntt_form = [0; n].to_vec();
     ntt_form[0] = n as u64;
     let expected_regular_form = [1; n].to_vec();
 
-    ct_intt(&mut ntt_form, n, q, w_inv, n_inv, &mut regular_form).unwrap();
-    assert_eq!(regular_form, expected_regular_form)
+    ct_intt(&mut ntt_form, n, q, w_inv, n_inv).unwrap();
+    assert_eq!(ntt_form, expected_regular_form)
 }
 // todo
 // умножние полиномов
@@ -175,10 +171,9 @@ pub fn ct_intt(
     q: ntt_data_size,
     w_inv: ntt_data_size,
     n_inv: ntt_data_size,
-    regular_form: &mut Vec<ntt_data_size>,
 ) -> Result<(), ()> {
-    ct_ntt(ntt_form, n, q, w_inv, regular_form).unwrap();
-    for x in regular_form.iter_mut() {
+    ct_ntt(ntt_form, n, q, w_inv).unwrap();
+    for x in ntt_form.iter_mut() {
         let r: u128 = (*x as u128 * n_inv as u128) % q as u128;
         *x = r as u64;
     }
@@ -192,9 +187,9 @@ pub fn ct_ntt(
     n: usize,
     q: ntt_data_size,
     w: ntt_data_size,
-    ntt_form: &mut Vec<ntt_data_size>,
+
 ) -> Result<(), ()> {
-    iter_dit_ntt(regular_form, n, q, w, ntt_form)
+    iter_dit_ntt(regular_form, n, q, w)
     // if n == 2 {
     //     //		xil_printf("CT_ntt 1\n");
     //     ntt_form.push(mod_sum(regular_form[0], regular_form[1], q));
@@ -267,11 +262,10 @@ pub fn ct_ntt(
 }
 
 pub fn iter_dit_ntt(
-        regular_form: &mut Vec<ntt_data_size>,
+        data: &mut Vec<ntt_data_size>,
         n: usize,
         q: ntt_data_size,
         w: ntt_data_size,
-        ntt_form: &mut Vec<ntt_data_size>,
     ) -> Result<(), ()> {
 
     //		xil_printf("CT_ntt 2\n");
@@ -280,8 +274,8 @@ pub fn iter_dit_ntt(
     let n_2 = n>>1;
     for i in 0..n {
         // ntt_form.push(0);
-        ntt_form.push(regular_form[i]);
-        B.push(regular_form[i]);
+        //ntt_form.push(regular_form[i]);
+        B.push(data[i]);
     }
 
     let mut v = n>>1;
@@ -303,8 +297,8 @@ pub fn iter_dit_ntt(
                 for j in jf..jl+1 {
                     let temp        = mod_mul(tw, B[j+d], q);
 
-                    ntt_form[l]     = mod_sum(B[j], temp, q);
-                    ntt_form[l+n_2] = mod_sub(B[j], temp, q);
+                    data[l]     = mod_sum(B[j], temp, q);
+                    data[l+n_2] = mod_sub(B[j], temp, q);
 
                     l += 1
                 }
@@ -322,10 +316,10 @@ pub fn iter_dit_ntt(
                 let tw = pow(w, jt as u32, q);
     
                 for j in jf..jl+1 {
-                    let temp = mod_mul(tw, ntt_form[j+d], q);
+                    let temp = mod_mul(tw, data[j+d], q);
     
-                    B[l]          = mod_sum(ntt_form[j], temp, q);
-                    B[l+n_2] = mod_sub(ntt_form[j], temp, q);
+                    B[l]          = mod_sum(data[j], temp, q);
+                    B[l+n_2] = mod_sub(data[j], temp, q);
     
                     l += 1
                 }

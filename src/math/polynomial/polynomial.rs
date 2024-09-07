@@ -387,39 +387,40 @@ fn polymul_nwc<const ORDER: usize>(
     // let mut a_: Vec<u64> = [0; n].to_vec();
     // let mut b_: Vec<u64> = [0; n].to_vec();
 
-    let mut a_: Vec<u64> = a.coeffs();
-    let mut b_: Vec<u64> = b.coeffs();
+    // let mut a_: Vec<u64> = a.coeffs();
+    // let mut b_: Vec<u64> = b.coeffs();
 
-    for i in 0..n {
-        a_[i] = (((a[i] as u128 * pow(psi, i as u32, q) as u128) % q as u128) % q as u128) as u64;
-        b_[i] = (((b[i] as u128 * pow(psi, i as u32, q) as u128) % q as u128) % q as u128) as u64;
-    }
+    // for i in 0..n {
+    //     a_[i] = (((a[i] as u128 * pow(psi, i as u32, q) as u128) % q as u128) % q as u128) as u64;
+    //     b_[i] = (((b[i] as u128 * pow(psi, i as u32, q) as u128) % q as u128) % q as u128) as u64;
+    // }
 
-    let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
-    let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
-    ct_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
-    ct_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
+    // let mut a_ntt_form: Vec<u64> = [0; n].to_vec();
+    // let mut b_ntt_form: Vec<u64> = [0; n].to_vec();
+    // ct_ntt(&mut a_, n, q, w, &mut a_ntt_form).unwrap();
+    // ct_ntt(&mut b_, n, q, w, &mut b_ntt_form).unwrap();
 
-    let mut c_ntt_form: Vec<u64> = [0; n].to_vec();
-    let mut c_regular_form: Vec<u64> = [0; n].to_vec();
-    let mut c_: Vec<u64> = [0; n].to_vec();
+    // let mut c_ntt_form: Vec<u64> = [0; n].to_vec();
+    // let mut c_regular_form: Vec<u64> = [0; n].to_vec();
+    // let mut c_: Vec<u64> = [0; n].to_vec();
 
-    for i in 0..n {
-        c_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
-    }
+    // for i in 0..n {
+    //     c_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
+    // }
 
-    ct_intt(&mut c_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
+    // ct_intt(&mut c_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
 
-    for i in 0..n {
-        c_[i] = (((c_regular_form[i] as u128 * pow(psi_inv, i as u32, q) as u128) % q as u128)
-            % q as u128) as u64
-    }
+    // for i in 0..n {
+    //     c_[i] = (((c_regular_form[i] as u128 * pow(psi_inv, i as u32, q) as u128) % q as u128)
+    //         % q as u128) as u64
+    // }
 
-    let c: Vec<u64> = c_
-        .iter()
-        .map(|v| mod_switch(*v, q as u128, 1 << 64))
-        .collect();
-    Polynomial::new(c)
+    // let c: Vec<u64> = c_
+    //     .iter()
+    //     .map(|v| mod_switch(*v, q as u128, 1 << 64))
+    //     .collect();
+    // Polynomial::new(c)
+    Polynomial::new_zero()
 }
 
 #[cfg(test)]
@@ -590,18 +591,20 @@ fn polymul_pwc<const ORDER: usize>(
     //     .map(|v| mod_switch(*v, 1 << 64, q as u128))
     //     .collect();
 
-    let mut a_ntt_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
-    let mut b_ntt_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
-    ct_ntt(&mut a.coeffs(), n, q, w, &mut a_ntt_form).unwrap();
-    ct_ntt(&mut b.coeffs(), n, q, w, &mut b_ntt_form).unwrap();
+    // let mut a_ntt_form_: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
+    // let mut b_ntt_form_: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
+    let mut a_ntt_form: Vec<u64> = a.coeffs();
+    let mut b_ntt_form: Vec<u64> = b.coeffs();
+    ct_ntt(&mut a_ntt_form, n, q, w).unwrap();
+    ct_ntt(&mut b_ntt_form, n, q, w).unwrap();
 
-    let mut c_regular_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
+    // let mut c_regular_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
 
     for i in 0..n {
         a_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
     }
 
-    ct_intt(&mut a_ntt_form, n, q, w_inv, n_inv, &mut c_regular_form).unwrap();
+    ct_intt(&mut a_ntt_form, n, q, w_inv, n_inv).unwrap();
 
     // mod switch back
 
@@ -609,7 +612,7 @@ fn polymul_pwc<const ORDER: usize>(
     //     .iter()
     //     .map(|v| mod_switch(*v, q as u128, 1 << 64))
     //     .collect();
-    Polynomial::new(c_regular_form)
+    Polynomial::new(a_ntt_form)
 }
 
 fn polymul_pwc_naive<const ORDER: usize>(
