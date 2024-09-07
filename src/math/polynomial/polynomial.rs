@@ -13,6 +13,7 @@ use proptest::prelude::*;
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 
+use crate::math::modular::mod_arith::{mod_sub, mod_sum};
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
@@ -161,7 +162,8 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
         for i in 0..ORDER {
             // sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
-            sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
+            sums[i] = mod_sum(self[i], rhs[i], Q as u64 + 1);
+          // sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
         }
         Polynomial::new(sums)
     }
@@ -175,12 +177,13 @@ impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
 
         for i in 0..ORDER {
             // diffs[i] = self[i].wrapping_sub(rhs[i]);
-            if self[i] >= rhs[i] {
-                diffs[i] = ((self[i] as u128 - rhs[i] as u128) % (Q as u128 + 1)) as u64;
-            } else {
-                // diffs[i] = ((Q as u128 + self[i] as u128 - rhs[i] as u128) % Q as u128) as u64;
-                diffs[i] = (Q as u128+1 - (rhs[i] as u128 - self[i] as u128) ) as u64;
-            }
+            diffs[i] = mod_sub(self[i], rhs[i], Q as u64 + 1);
+            // if self[i] >= rhs[i] {
+            //     diffs[i] = ((self[i] as u128 - rhs[i] as u128) % (Q as u128 + 1)) as u64;
+            // } else {
+            //     // diffs[i] = ((Q as u128 + self[i] as u128 - rhs[i] as u128) % Q as u128) as u64;
+            //     diffs[i] = (Q as u128+1 - (rhs[i] as u128 - self[i] as u128) ) as u64;
+            // }
             
         }
         // println!("sub. lhs: {}, rhs: {}, diff1: {}, diff2: {}", self[0], rhs[0], rhs[0] as u128 - self[0] as u128, (Q as u128+1 - (rhs[0] as u128 - self[0] as u128) ));

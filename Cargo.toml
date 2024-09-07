@@ -7,6 +7,7 @@ edition = "2021"
 doctest = false
 
 [dependencies]
+cached = "0.53.1"
 colored = "2.1.0"
 num = "0.4.3"
 rand = "0.8.5"

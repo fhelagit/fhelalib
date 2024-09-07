@@ -1,5 +1,6 @@
 #[allow(non_camel_case_types)]
 type ntt_data_size = u64;
+use cached::proc_macro::cached;
 use crate::math::modular::mod_arith::*;
 #[cfg(test)]
 use proptest::prelude::*;
@@ -140,6 +141,7 @@ fn test_nc_intt_ones() {
 // умножение на константу
 // функцию примерного старвнеия полиномов
 
+#[cached]
 pub fn pow(a: u64, p: u32, q: u64) -> u64 {
     let mut acc: u64 = 1;
     for _ in 1..=p {
@@ -166,6 +168,7 @@ pub fn modinv(a: u64, q: u64) -> Result<u64, String> {
     }
 }
 
+#[inline(always)]
 pub fn ct_intt(
     ntt_form: &mut Vec<ntt_data_size>,
     n: usize,
@@ -183,6 +186,7 @@ pub fn ct_intt(
     Ok(())
 }
 
+#[inline(always)]
 pub fn ct_ntt(
     regular_form: &mut Vec<ntt_data_size>,
     n: usize,
@@ -190,73 +194,149 @@ pub fn ct_ntt(
     w: ntt_data_size,
     ntt_form: &mut Vec<ntt_data_size>,
 ) -> Result<(), ()> {
-    if n == 2 {
-        //		xil_printf("CT_ntt 1\n");
-        ntt_form.push(mod_sum(regular_form[0], regular_form[1], q));
-        //		xil_printf("CT_ntt 11\n");
-        ntt_form.push(mod_sub(regular_form[0], regular_form[1], q));
-        Ok(())
-    //		xil_printf("CT_ntt 12\n");
+    iter_dit_ntt(regular_form, n, q, w, ntt_form)
+    // if n == 2 {
+    //     //		xil_printf("CT_ntt 1\n");
+    //     ntt_form.push(mod_sum(regular_form[0], regular_form[1], q));
+    //     //		xil_printf("CT_ntt 11\n");
+    //     ntt_form.push(mod_sub(regular_form[0], regular_form[1], q));
+    //     Ok(())
+    // //		xil_printf("CT_ntt 12\n");
 
-    //		xil_printf("A[0]: %u\n", A[0]);
-    //		xil_printf("A[1]: %u\n", A[1]);
-    //
-    //		xil_printf("B[0]: %u\n", result[0]);
-    //		xil_printf("B[1]: %u\n", result[1]);
-    } else {
-        //		xil_printf("CT_ntt 2\n");
-        let n_2 = n / 2;
-        // let mut b: Vec<ntt_data_size> = Vec::new();
-        let mut w_cur = 1;
+    // //		xil_printf("A[0]: %u\n", A[0]);
+    // //		xil_printf("A[1]: %u\n", A[1]);
+    // //
+    // //		xil_printf("B[0]: %u\n", result[0]);
+    // //		xil_printf("B[1]: %u\n", result[1]);
+    // } else {
+    //     //		xil_printf("CT_ntt 2\n");
+    //     let n_2 = n / 2;
+    //     // let mut b: Vec<ntt_data_size> = Vec::new();
+    //     let mut w_cur = 1;
 
-        // for _ in 0..n {
-        //     ntt_form.push(0);
-        // }
+    //     // for _ in 0..n {
+    //     //     ntt_form.push(0);
+    //     // }
 
-        let mut a_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
-        let mut a_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
-        let mut b_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
-        let mut b_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+    //     let mut a_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+    //     let mut a_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+    //     let mut b_even: Vec<ntt_data_size> = Vec::with_capacity(n_2);
+    //     let mut b_odd: Vec<ntt_data_size> = Vec::with_capacity(n_2);
 
-        // for _ in 0..n_2 {
-        //     // a_even.push(0);
-        //     // a_odd.push(0);
-        //     b_even.push(0);
-        //     b_odd.push(0);
-        // }
+    //     // for _ in 0..n_2 {
+    //     //     // a_even.push(0);
+    //     //     // a_odd.push(0);
+    //     //     b_even.push(0);
+    //     //     b_odd.push(0);
+    //     // }
 
-        for i in 0..n_2 {
-            //		xil_printf("CT_ntt 21\n");
-            ntt_form.push(0);
-            ntt_form.push(0);
-            a_even.push(regular_form[2 * i]);
-            a_odd.push(regular_form[2 * i + 1]);
-        }
+    //     for i in 0..n_2 {
+    //         //		xil_printf("CT_ntt 21\n");
+    //         ntt_form.push(0);
+    //         ntt_form.push(0);
+    //         a_even.push(regular_form[2 * i]);
+    //         a_odd.push(regular_form[2 * i + 1]);
+    //     }
 
-        let w_2: ntt_data_size = mod_mul(w, w, q);
+    //     let w_2: ntt_data_size = mod_mul(w, w, q);
 
-        ct_ntt(&mut a_even, n_2, q, w_2, &mut b_even)?;
-        ct_ntt(&mut a_odd, n_2, q, w_2, &mut b_odd)?;
-        //		xil_printf("CT_ntt 221\n");
+    //     ct_ntt(&mut a_even, n_2, q, w_2, &mut b_even)?;
+    //     ct_ntt(&mut a_odd, n_2, q, w_2, &mut b_odd)?;
+    //     //		xil_printf("CT_ntt 221\n");
 
-        for i in 0..n_2 {
-            //			xil_printf("CT_ntt 222: %u\n", i);
-            let b_i_mul_w: ntt_data_size = mod_mul(w_cur, b_odd[i], q);
-            //			xil_printf("CT_ntt 223\n");
-            ntt_form[i] = mod_sum(b_even[i], b_i_mul_w, q);
-            //			xil_printf("CT_ntt 224\n");
-            ntt_form[i + n_2] = mod_sub(b_even[i], b_i_mul_w, q);
-            //			xil_printf("CT_ntt 225\n");
-            w_cur = mod_mul(w_cur, w, q);
-            //			xil_printf("CT_ntt 226\n");
-        }
-        //		xil_printf("CT_ntt 227\n");
+    //     for i in 0..n_2 {
+    //         //			xil_printf("CT_ntt 222: %u\n", i);
+    //         let b_i_mul_w: ntt_data_size = mod_mul(w_cur, b_odd[i], q);
+    //         //			xil_printf("CT_ntt 223\n");
+    //         ntt_form[i] = mod_sum(b_even[i], b_i_mul_w, q);
+    //         //			xil_printf("CT_ntt 224\n");
+    //         ntt_form[i + n_2] = mod_sub(b_even[i], b_i_mul_w, q);
+    //         //			xil_printf("CT_ntt 225\n");
+    //         w_cur = mod_mul(w_cur, w, q);
+    //         //			xil_printf("CT_ntt 226\n");
+    //     }
+    //     //		xil_printf("CT_ntt 227\n");
 
-        // for i in 0..n {
-        //     //	xil_printf("CT_ntt 23\n");
-        //     ntt_form.push(b[i]);
-        // }
-        Ok(())
-        //		xil_printf("CT_ntt 228\n");
+    //     // for i in 0..n {
+    //     //     //	xil_printf("CT_ntt 23\n");
+    //     //     ntt_form.push(b[i]);
+    //     // }
+    //     Ok(())
+    //     //		xil_printf("CT_ntt 228\n");
+    // }
+}
+
+pub fn iter_dit_ntt(
+        regular_form: &mut Vec<ntt_data_size>,
+        n: usize,
+        q: ntt_data_size,
+        w: ntt_data_size,
+        ntt_form: &mut Vec<ntt_data_size>,
+    ) -> Result<(), ()> {
+
+    //		xil_printf("CT_ntt 2\n");
+    // let mut C: Vec<u64> = Vec::with_capacity(n);
+    let mut B: Vec<ntt_data_size> = Vec::with_capacity(n);
+    let n_2 = n>>1;
+    for i in 0..n {
+        // ntt_form.push(0);
+        ntt_form.push(regular_form[i]);
+        B.push(regular_form[i]);
     }
+
+    let mut v = n>>1;
+    let mut m = 1;
+    let mut d = n>>1;
+
+    let mut nsi = if ((v as f64).log2() as u64) % 2 == 0 {true} else {false};
+
+    while m < n {
+        if nsi {
+            let mut l = 0;
+            for k in 0..m {
+                let jf = 2*k*v;
+                let jl = jf + v - 1;
+                let jt = k*v;
+
+                let tw = pow(w, jt as u32, q);
+
+                for j in jf..jl+1 {
+                    let temp        = mod_mul(tw, B[j+d], q);
+
+                    ntt_form[l]     = mod_sum(B[j], temp, q);
+                    ntt_form[l+n_2] = mod_sub(B[j], temp, q);
+
+                    l += 1
+                }
+            }
+            nsi = false
+                
+
+        } else {
+            let mut l = 0;
+            for k in 0..m{
+                let jf = 2*k*v;
+                let jl = jf + v - 1;
+                let jt = k*v;
+    
+                let tw = pow(w, jt as u32, q);
+    
+                for j in jf..jl+1 {
+                    let temp = mod_mul(tw, ntt_form[j+d], q);
+    
+                    B[l]          = mod_sum(ntt_form[j], temp, q);
+                    B[l+n_2] = mod_sub(ntt_form[j], temp, q);
+    
+                    l += 1
+                }
+            }
+            nsi = true
+            
+        }
+        v >>= 1;
+        m <<= 1;
+        d >>= 1;
+    }
+    Ok(())
+
 }
