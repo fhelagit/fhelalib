@@ -7,7 +7,7 @@ use crate::random::random::{
     rnd_u64_gausean, rnd_u64_uniform, rnd_u64_uniform_binary, rnd_u64_uniform_bounded,
 };
 use std::fmt::{Debug};
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 pub trait TFHESchema: Clone
 where
@@ -26,6 +26,7 @@ where
     // Self::GLWECTContainerType: from_poly_list<32>,
     // Self::GLWECTContainerType: from_poly_list<1024>,
     Self::GLWECTContainerType: Index<usize, Output = Self::ScalarType>,
+    Self::GLWECTContainerType: IndexMut<usize, Output = Self::ScalarType>,
 
     Self::SecretKeyContainerType: Clone,
     Self::SecretKeyContainerType: Debug,
@@ -99,6 +100,7 @@ where
     Self::ContainerType: Sized,
     Self::ContainerType: serde::de::DeserializeOwned,
     Self::ContainerType: Index<usize, Output = Self::ScalarType>,
+    Self::ContainerType: IndexMut<usize, Output = Self::ScalarType>,
     Self::ContainerType: from_poly_list,
 
     Self::ScalarType: Clone,

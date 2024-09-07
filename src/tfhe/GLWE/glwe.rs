@@ -1,6 +1,7 @@
 use crate::math::polynomial::polynomial::Polynomial;
 use std::fmt::{self, Display};
 use std::ops;
+use std::ops::{Index, IndexMut};
 use std::str::FromStr;
 extern crate serde_json;
 
@@ -15,6 +16,8 @@ use crate::tfhe::schemas::{
     from_poly_list, from_u64, GLWE_Params, LWE_CT_Params, LWE_Params, TFHESchema,
     TFHE_test_medium_u64, TFHE_test_small_u64,
 };
+
+use crate::math::modular::mod_arith::{mod_sub, mod_sum};
 
 // #[cfg(test)]
 
@@ -42,6 +45,19 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> GLWECiphertext<S, P> {
             v[i] = from_u64::to(self.0[ind * P::POLINOMIAL_SIZE + i]);
         }
         v
+    }
+}
+
+impl<S: TFHESchema, P: LWE_CT_Params<S>> Index<usize> for GLWECiphertext<S, P> {
+    type Output = P::ScalarType;
+    fn index(&self, i: usize) -> &P::ScalarType {
+        &self.0[i]
+    }
+}
+
+impl<S: TFHESchema, P: LWE_CT_Params<S>> IndexMut<usize> for GLWECiphertext<S, P> {
+    fn index_mut(&mut self, i: usize) -> &mut P::ScalarType {
+        &mut self.0[i]
     }
 }
 
@@ -127,6 +143,19 @@ where
             sums.push(&self.get_poly_by_index(i) - &rhs.get_poly_by_index(i));
         }
         GLWECiphertext::<S, P>::from_polynomial_list(from_poly_list::from(sums))
+    }
+}
+
+impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::AddAssign<&GLWECiphertext<S, P>> for GLWECiphertext<S, P>
+where
+    [(); P::POLINOMIAL_SIZE]: Sized,
+{
+    fn add_assign(&mut self, rhs: &GLWECiphertext<S, P>)  {
+    
+        for i in 0..((P::MASK_SIZE + 1)*(P::POLINOMIAL_SIZE)) {
+            (*self)[i] = from_u64::from(mod_sum(from_u64::to(self[i]), from_u64::to(rhs[i]), 18446744073709550593));
+        }
+
     }
 }
 
