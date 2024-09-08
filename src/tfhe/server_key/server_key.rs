@@ -48,7 +48,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
     {
         // println!("bootstrap 1");
 
-        let message_size_bits = S::GLEV_B as u32;
+        let message_size_bits = S::MESSAGE_SPACE_SIZE as u32;
         let lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
             .flat_map(|e| {
                 (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
@@ -93,37 +93,37 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         // lut = &lut * &lut_shift;
         lut = self.rotate_glwe(
                 &lut,
-                (P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::GLEV_B) >> 1)) as u64);
+                (P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::MESSAGE_SPACE_SIZE) >> 1)) as u64);
 
         // lut = self.mul_glwe_poly(
         //             &lut,
         //             &lut_shift);
 
 
-        // cts.push(("lut initial".to_string(), lut.clone()));
+        cts.push(("lut initial".to_string(), lut.clone()));
         // println!("bootstrap 3");
 
         let body_ = mod_switch(
             ct.get_poly_by_index(P_lwe::MASK_SIZE)[0],
             1 << 64,
-            P_glwe::POLINOMIAL_SIZE as u128,
-        );
+            (P_glwe::POLINOMIAL_SIZE << (S::GLEV_B-S::MESSAGE_SPACE_SIZE)) as u128 ,
+        ) % P_glwe::POLINOMIAL_SIZE as u64;
         // println!(
         //     "bootstrap 4: ct.body: {}, switched: {}",
         //     ct.get_poly_by_index(P_lwe::MASK_SIZE)[0],
         //     body_
         // );
 
-        let body: Polynomial<{ P_glwe::POLINOMIAL_SIZE }> =
-            Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
-                1,
-                P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
-            );
+        // let body: Polynomial<{ P_glwe::POLINOMIAL_SIZE }> =
+        //     Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(
+        //         1,
+        //         P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
+        //     );
         // lut = &lut * &body;
        lut = self.rotate_glwe(&lut, P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_);
         // lut = self.mul_glwe_poly(&lut, &body);
         // println!("bootstrap 5");
-        // cts.push((format!("lut rotated b = {}", P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_).to_string(), lut.clone()));
+        cts.push((format!("lut rotated b = {}", P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_).to_string(), lut.clone()));
 
         
 
@@ -131,8 +131,8 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             let a_i_ = mod_switch(
                 ct.get_poly_by_index(i)[0],
                 1 << 64,
-                P_glwe::POLINOMIAL_SIZE as u128,
-            ); 
+                (P_glwe::POLINOMIAL_SIZE << (S::GLEV_B-S::MESSAGE_SPACE_SIZE)) as u128,
+            ) % P_glwe::POLINOMIAL_SIZE as u64; 
             //(ct.get_poly_by_index(i)[0] >> (64-7+3)) << 3;//mod_switch(ct.get_poly_by_index(i)[0], 1<<64, P_glwe::POLINOMIAL_SIZE as u128);
             // println!(
             //     "bootstrap 7: ct.a[i]: {}, switched: {}",
@@ -157,7 +157,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
 
             lut = cmux(&self.key[i], &lut_rotated, &lut.clone());
             // println!("bootstrap 7/5: lut[{i}]: {}, cmux: {}", lut,  cmux(&self.key[i], &lut_rotated, &lut.clone()));
-            // cts.push((format!("lut after cmux[{i}]").to_string(), lut.clone()));
+            cts.push((format!("lut after cmux[{i}] = {}", a_i_).to_string(), lut.clone()));
         }
 
 

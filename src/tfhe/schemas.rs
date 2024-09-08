@@ -45,6 +45,7 @@ where
     Self::PolynomialContainerType: Sized,
     Self::PolynomialContainerType: serde::de::DeserializeOwned,
 {
+    const MESSAGE_SPACE_SIZE: usize;
     const LWE_K: usize;
     const GLWE_N: usize;
     const GLWE_K: usize;
@@ -62,13 +63,14 @@ where
 pub struct TFHE_test_small_u64;
 
 impl TFHESchema for TFHE_test_small_u64 {
+    const MESSAGE_SPACE_SIZE: usize = 5;
     const LWE_K: usize = 500;
-    const GLWE_N: usize = 256;
+    const GLWE_N: usize = 2048;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
-    const GLEV_B: usize = 2;
-    const GLEV_L: usize = 10;
+    const GLEV_B: usize = 10;
+    const GLEV_L: usize = 2;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
     type SecretKeyContainerType = Vec<Self::ScalarType>;
@@ -79,6 +81,7 @@ impl TFHESchema for TFHE_test_small_u64 {
 pub struct TFHE_test_medium_u64;
 
 impl TFHESchema for TFHE_test_medium_u64 {
+    const MESSAGE_SPACE_SIZE: usize = 2;
     const LWE_K: usize = 586;
     const GLWE_N: usize = 1024;
     const GLWE_K: usize = 1;
@@ -147,7 +150,7 @@ impl<S: TFHESchema> LWE_CT_Params<S> for LWE_Params<S> {
         // from_u64::from(rnd_u64_uniform_bounded(1 << 53))
         from_u64::from(rnd_u64_uniform())
         // from_u64::from(18_446_744_073_709_551_615u64)
-        // from_u64::from(5804407862833930667)
+        // from_u64::from(0)
     }
     fn random_scalar_noise() -> Self::ScalarType {
         from_u64::from(rnd_u64_gausean())
