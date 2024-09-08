@@ -1,4 +1,4 @@
-use crate::math::polynomial::polynomial::{decompose_polynomial, Polynomial};
+use crate::math::polynomial::polynomial::{decompose_polynomial_assign, Polynomial};
 use crate::tfhe::glwe::GLWECiphertext;
 use std::fmt::{self, Display};
 use std::ops;
@@ -101,19 +101,26 @@ where
     fn mul(self, rhs: &GLWECiphertext<S, P>) -> GLWECiphertext<S, P> {
         // println!("mul_ext: 1");
 
+        let mut dec: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(S::GLEV_L);
+        for _ in 0..S::GLEV_L {
+            dec.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero())
+        }
+        
         let mut acc: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(P::MASK_SIZE + 1);
         for _ in 0..=P::MASK_SIZE {
             acc.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero())
         }
         // let mut acc: GLWECiphertext<S,P> = GLWECiphertext::from_polynomial_list(from_poly_list::from(zero_data));
 
+
         for glev_number in 0..=P::MASK_SIZE {
-            let dec = decompose_polynomial::<
+
+            decompose_polynomial_assign::<
                 { S::GLWE_Q },
                 { S::GLEV_L },
                 { S::GLEV_B },
                 { P::POLINOMIAL_SIZE },
-            >(rhs.get_poly_by_index(glev_number));
+            >(rhs.get_poly_by_index(glev_number), &mut dec);
             // println!("mul_ext: glev_number: {glev_number}, poly: {:?}, dec: {:?}", rhs.get_poly_by_index(glev_number), dec);
             let offset_glev = glev_number * (S::GLEV_L * (P::MASK_SIZE + 1));
 
@@ -122,7 +129,7 @@ where
 
                 for poly_number in 0..=P::MASK_SIZE {
                     // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
-                    acc[poly_number] += &(&dec[glwe_number] * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
+                   acc[poly_number] += &(&dec[glwe_number] * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
                 }
             }
         }

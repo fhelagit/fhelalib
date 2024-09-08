@@ -3,7 +3,7 @@
 use crate::{
     math::{
         modular::module_switch::mod_switch,
-        polynomial::polynomial::{decompose_polynomial, Polynomial},
+        polynomial::polynomial::{decompose_polynomial_assign, Polynomial},
     },
     tfhe::{
         ggsw::ggsw::GGSWCiphertext,
@@ -263,6 +263,12 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
     {
         assert_eq!(P_lwe::POLINOMIAL_SIZE, 1);
         assert_eq!(P_lwe_old::POLINOMIAL_SIZE, 1);
+
+        let mut dec: Vec<Polynomial<{ P_lwe_old::POLINOMIAL_SIZE }>> = Vec::with_capacity(S::GLEV_L);
+        for _ in 0..S::GLEV_L {
+            dec.push(Polynomial::<{ P_lwe_old::POLINOMIAL_SIZE }>::new_zero())
+        }
+
         let mut acc: Vec<Polynomial<{ P_lwe::POLINOMIAL_SIZE }>> =
             Vec::with_capacity(P_lwe::MASK_SIZE + 1);
         for _ in 0..=P_lwe::MASK_SIZE {
@@ -271,12 +277,12 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
         // println!("switch_key 1");
         for glev_number in 0..P_lwe_old::MASK_SIZE {
             // println!("switch_key 2. glev_number: {glev_number}");
-            let dec = decompose_polynomial::<
+            decompose_polynomial_assign::<
                 { S::GLWE_Q },
                 { S::GLEV_L },
                 { S::GLEV_B },
                 { P_lwe_old::POLINOMIAL_SIZE },
-            >(ct.get_poly_by_index(glev_number));
+            >(ct.get_poly_by_index(glev_number), &mut dec);
             // println!("mul_ext: 2, dec: {:?}", dec);
             let offset_glev = glev_number * (S::GLEV_L * (P_lwe::MASK_SIZE + 1));
 

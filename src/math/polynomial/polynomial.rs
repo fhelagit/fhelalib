@@ -772,49 +772,55 @@ impl<const ORDER: usize> IntoIterator for &Polynomial<ORDER> {
 
 // }
 
-pub fn decompose_polynomial<
+pub fn decompose_polynomial_assign<
     const GLWE_Q: usize,
     const GLEV_L: usize,
     const GLEV_B: usize,
     const ORDER: usize,
 >(
     p: Polynomial<ORDER>,
-) -> Vec<Polynomial<ORDER>> {
-    let mut a = Vec::with_capacity(GLEV_L);
-    for _ in 0..GLEV_L {
-        a.push([0; ORDER].to_vec());
+    dec_polies: &mut Vec<Polynomial<ORDER>>,
+) {
+
+    for dec_lev in 0..GLEV_L {
+        dec_polies.push(Polynomial::<ORDER>::new_zero());
     }
-    //let b:[Vec<u64>; S::GLEV_L] = a.try_into().unwrap();
-    // println!("nums: {:?}", p.coeffs());
-    let decs = p
-        .coeffs()
-        .iter()
-        .map(|x| {
-            let dec = decomp_int::<{ GLWE_Q }, { GLEV_L }, { GLEV_B }>(*x);
-            // println!("dec_int({}) = {:?}", x, dec);
-            dec
-        })
-        .into_iter()
-        .enumerate()
-        .fold(a, |acc, (i, dec_nums)| {
-            let acc_ = acc
-                .iter()
-                .enumerate()
-                .map(|(j, ns)| {
-                    let mut ns_ = ns.clone();
-                    // println!("ns_: {:?}", ns_);
-                    // println!("j: {:?}", j);
-                    ns_[i] = dec_nums[j];
-                    ns_
-                })
-                .collect::<Vec<Vec<u64>>>();
-            acc_
-            // заменить в каждом j-том полиномеме i-тый компонент на j-тый компонент dec_nums
-        })
-        .iter()
-        .map(|e| Polynomial::new(e.clone()))
-        .collect();
-    decs
+    for i in 0..ORDER {
+        decomp_int_assign::<{ GLWE_Q }, { GLEV_L }, { GLEV_B }, {ORDER}>(p[i], dec_polies, i);
+    }
+}
+
+fn decomp_int_assign<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize, const ORDER: usize>(n: u64, acc: &mut Vec<Polynomial<ORDER>>, coef_index: usize) {
+    let pos = (GLEV_L * GLEV_B) as u32;
+
+    
+
+    let bit = if pos == 64 {
+        0
+    } else {
+        n & (1 << (GLWE_Q as u32 - pos - 1))
+    };
+
+    let new_n = if bit > 0 && pos < 64 {
+        n // n.wrapping_add(1 << (GLWE_Q as u32 - pos))
+    } else {
+        n
+    };
+    for i in 0..GLEV_L {
+        let l_shift = new_n << (GLEV_B * i);
+        let r_shift = (l_shift) >> (GLWE_Q - GLEV_B);
+        acc[i][coef_index] = r_shift;
+    }
+
+    // let res = (0..GLEV_L)
+    //     .into_iter()
+    //     .map(|i| {
+    //         let l_shift = new_n << (GLEV_B * i);
+    //         let r_shift = (l_shift) >> (GLWE_Q - GLEV_B);
+    //         r_shift
+    //     })
+    //     .collect::<Vec<u64>>();
+    //res
 }
 
 fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
@@ -865,7 +871,12 @@ proptest! {
     #[test]
     fn pt_decomp_poly_callable(a in any::<[u64; pwc_n]>().prop_map(|v| Polynomial::<pwc_n>::new(v.to_vec()))) {
 
-        let _ = decompose_polynomial::<64, 3, 8, pwc_n>(a);
+        let mut dec: Vec<Polynomial<pwc_n>> = Vec::with_capacity(3);
+        for _ in 0..3 {
+            dec.push(Polynomial::<pwc_n>::new_zero())
+        }
+
+        let _ = decompose_polynomial_assign::<64, 3, 8, pwc_n>(a, &mut dec);
 
 
         // prop_assert_eq!(poly_approximately_equial::<pwc_n>(&d_ab_c, &d_a_bc, 10000), true)

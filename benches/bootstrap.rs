@@ -21,7 +21,7 @@ struct MySchema;
 
 impl TFHESchema for MySchema {
     const LWE_K: usize = 500;
-    const GLWE_N: usize = 256;
+    const GLWE_N: usize = 1024;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
