@@ -13,12 +13,12 @@ use proptest::prelude::*;
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 
-use crate::math::modular::mod_arith::{mod_sub, mod_sum};
+use crate::math::modular::mod_arith::{mod_sub, mod_sum, mod_mul};
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
 // use std::marker::PhantomData;
-const Q: usize = 18446744073709547521-1;//18437455399478099969-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
+const Q: usize = 18446744073709550593-1;//18437455399478099969-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
 // const Q: usize = u64::MAX as usize;
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
@@ -563,6 +563,13 @@ fn polymul_pwc<const ORDER: usize>(
     const n: usize = 2048;
     let n_inv: u64 = 18437736874454806531;
 
+    // 1024
+    // let q: u64 = 18446744073709550593;
+    // let w: u64 = 3632633069964680952;
+    // let w_inv: u64 = 7236465593496852055;
+    // const n: usize = 1024;
+    // let n_inv: u64 = 18437736874454806531;
+
     // 256
     // let q: u64 = 18446744073709550593;
     // let w: u64 = 12400524647368804660;
@@ -601,7 +608,7 @@ fn polymul_pwc<const ORDER: usize>(
     // let mut c_regular_form: Vec<u64> = Vec::with_capacity(n);//[0; n].to_vec();
 
     for i in 0..n {
-        a_ntt_form[i] = ((a_ntt_form[i] as u128 * b_ntt_form[i] as u128) % q as u128) as u64;
+        a_ntt_form[i] = mod_mul(a_ntt_form[i], b_ntt_form[i], q);
     }
 
     ct_intt(&mut a_ntt_form, n, q, w_inv, n_inv).unwrap();
