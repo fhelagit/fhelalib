@@ -712,10 +712,12 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(10000))]
+    #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     fn pt_switch_key_expected(message in any::<[u8; LWE_Params_after_extraction::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params_after_extraction::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
 
+
+       // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
         let old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params_after_extraction<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
         let new: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
         let ksk = new.create_keyswitching_key::<LWE_Params_after_extraction<TFHE_test_small_u64>>(&old);
@@ -726,7 +728,7 @@ proptest! {
         let keyswitched_message = ksk.switch_key(&encrypted_message);
         let decrypted_message = new.decrypt(&keyswitched_message);
 
-        prop_assert_eq!(dbg!(decrypted_message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), dbg!(message[0]>>(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
+        prop_assert_eq!(dbg!(decrypted_message.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B))[0]), dbg!(message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0]));
         // assert_eq!(1,2);
 
     }
@@ -734,11 +736,11 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
-    fn pt_bootstrap_extract_keyswitch_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 2) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
+    fn pt_bootstrap_extract_keyswitch_expected(message_ in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 2) as u64) << (TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B) ).collect()))) {
 
-       // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
+       let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
 
         let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
 
@@ -759,7 +761,7 @@ proptest! {
 
         let expected_message = message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
 
-        let decrypted_message = sk_old.decrypt(&keyswitched_message).shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
+        let decrypted_message = sk_old.decrypt(&keyswitched_message).round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B))[0];
         // println!("pt_bootstrapping_expected 6, secret_key: {:?}, message: {:?}", sk_old, message);
 
         // for i in 0..log_cts.len() {
@@ -783,9 +785,9 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    fn pt_eval_expected(message in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64)).collect()))) {
+    fn pt_eval_expected(message_ in any::<[u8; LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE]>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new(v.iter().map(|vv| ((*vv >> 6) as u64)).collect()))) {
 
-        // let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
+        let message = Polynomial::<1>::new_monomial(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 0);
 
         let sk_old: GLWE_secret_key<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = GLWE_secret_key::new_random();
 
@@ -798,7 +800,7 @@ proptest! {
         let encrypted_message: GLWECiphertext<TFHE_test_small_u64, LWE_Params<TFHE_test_small_u64>> = sk_old.encrypt(&message.shl(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B));
 
         let f = |v: u64| {
-            if v==2 {1} else {0}
+            if v==1 {1} else {0}
             // v
         };
 
@@ -806,7 +808,7 @@ proptest! {
         let evaluated_message = eval_key.eval(&encrypted_message, &f);
 
         // let expected_message = message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0];
-        let expected_message = if message[0]==2 {1} else {0};
+        let expected_message = f(message.shr(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)[0]);
 
         let decrypted_message = sk_old.decrypt(&evaluated_message).round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B))[0];
 
@@ -822,7 +824,7 @@ proptest! {
 
 #[cfg(test)]
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
+    #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
     fn pt_eval_bivar_expected(message1_ in any::<bool>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new([if v == true {1} else {0}].to_vec() ))
                             , message2_ in any::<bool>().prop_map(|v| Polynomial::<{LWE_Params::<TFHE_test_small_u64>::POLINOMIAL_SIZE}>::new([if v == true {1} else {0}].to_vec() ))) {

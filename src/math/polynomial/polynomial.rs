@@ -73,7 +73,7 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial::new(self.0.iter().map(|v| v % divisor).collect())
     }
 
-    pub fn swicth_order<const NEW_OREDER: usize>(&self) -> Polynomial<NEW_OREDER> {
+    pub fn switch_order<const NEW_OREDER: usize>(&self) -> Polynomial<NEW_OREDER> {
         assert_eq!(NEW_OREDER, ORDER);
         return Polynomial::<NEW_OREDER>::new(self.0.clone());
     }

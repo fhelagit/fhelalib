@@ -28,6 +28,10 @@ criterion = { version = "0.5.1", features = ["html_reports"] }
 name = "strings"
 path = "examples/strings/main.rs"
 
+[[example]]
+name = "arithmetics"
+path = "examples/arithmetics/main.rs"
+
 [[bench]]
 name = "bootstrap"
 harness = false

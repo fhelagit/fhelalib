@@ -292,14 +292,10 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
                 for poly_number in 0..=P_lwe::MASK_SIZE {
                     // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
                     // println!("switch_key 3. offset_glev + offset_glwe + poly_number: {}", offset_glev + offset_glwe + poly_number);
-                    acc[poly_number] = &acc[poly_number]
-                        + &(&dec[glwe_number].swicth_order::<{ P_lwe::POLINOMIAL_SIZE }>()
-                            * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
+                    acc[poly_number] += &(&dec[glwe_number].switch_order::<{ P_lwe::POLINOMIAL_SIZE }>() * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
                 }
             }
         }
-
-        // 330 != 11*1*3*128
 
         let mut b_ct: Vec<Polynomial<{ P_lwe::POLINOMIAL_SIZE }>> =
             Vec::with_capacity(P_lwe::MASK_SIZE + 1);
@@ -309,7 +305,7 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
         // println!("switch_key 4");
         b_ct.push(
             ct.get_poly_by_index(P_lwe_old::MASK_SIZE)
-                .swicth_order::<{ P_lwe::POLINOMIAL_SIZE }>(),
+                .switch_order::<{ P_lwe::POLINOMIAL_SIZE }>(),
         );
         &GLWECiphertext::from_polynomial_list(from_poly_list::from(b_ct))
             - &GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
@@ -353,13 +349,18 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
     {
         assert_eq!(P_lwe::POLINOMIAL_SIZE, 1);
 
-        let message_size_bits = S::GLEV_B as u32;
-        let lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
+        let message_size_bits = S::MESSAGE_SPACE_SIZE as u32;
+
+        let mut lut: Vec<u64> = (0..2_u64.pow(message_size_bits))
             .flat_map(|e| {
                 (0..(P_glwe::POLINOMIAL_SIZE as u64 >> message_size_bits))
                     .map(move |_a| (f(e) << (S::GLWE_Q - S::GLEV_B)))
             })
             .collect();
+
+        // lut = self.rotate_glwe(
+        //         &lut,
+        //         (P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::MESSAGE_SPACE_SIZE) >> 1)) as u64);
 
         let (bootstrapped_message, _): (
             GLWECiphertext<S, P_glwe>,

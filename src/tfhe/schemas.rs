@@ -70,7 +70,7 @@ impl TFHESchema for TFHE_test_small_u64 {
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
     const GLEV_B: usize = 10;
-    const GLEV_L: usize = 2;
+    const GLEV_L: usize = 3;
     type ScalarType = u64;
     type GLWECTContainerType = Vec<Self::ScalarType>;
     type SecretKeyContainerType = Vec<Self::ScalarType>;
