@@ -17,10 +17,13 @@ use colored::Colorize;
 
 #[derive(Debug, Subcommand)]
 enum AppCommand {
-    CheckEquility {
-        str_to_be_encrypted: String,
-        str_to_compare: String
+    Encrypt {
+        operand1: u8,
+        operand2: u8
     },
+    Multiply,
+    Decrypt,
+
 }
 
 #[derive(Parser)]
@@ -43,32 +46,40 @@ fn main() {
 
     match args {
         CliArgs {
-            command: AppCommand::CheckEquility {str_to_be_encrypted, str_to_compare},
+            command: AppCommand::Encrypt {operand1, operand2},
             ..
         } => {
             
-            assert_eq!(str_to_be_encrypted.len(), str_to_compare.len(), "{}", format!("String lengths must match").red());
-            assert!(str_to_be_encrypted.chars().chain(str_to_compare.chars()).all(|x| x.is_ascii_lowercase()), "{}", format!("String should contain only latin letters in lower case").red() );
+            // assert_eq!(str_to_be_encrypted.len(), str_to_compare.len(), "{}", format!("String lengths must match").red());
+            // assert!(str_to_be_encrypted.chars().chain(str_to_compare.chars()).all(|x| x.is_ascii_lowercase()), "{}", format!("String should contain only latin letters in lower case").red() );
 
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
 
             print_verbose(format!("{} {:?}", format!("Secret key:").green(), &key));
 
-            print_verbose(format!("{} {:?}", format!("Plain string:").green(), &str_to_be_encrypted));
-            let encrypted_str = key.encrypt_string(&str_to_be_encrypted);
-            print_verbose(format!("{} {:?}", format!("Encrypted string:").green(), &encrypted_str));
+            print_verbose(format!("{} {:?}", format!("Plain operand 1:").green(), &operand1));
+            let encrypted_operand1 = key.encrypt_int(operand1 as u64);
+            print_verbose(format!("{} {:?}", format!("Encrypted operand 1:").green(), &encrypted_operand1));
+
+            print_verbose(format!("{} {:?}", format!("Plain operand 2:").green(), &operand2));
+            let encrypted_operand2 = key.encrypt_int(operand2 as u64);
+            print_verbose(format!("{} {:?}", format!("Encrypted operand 2:").green(), &encrypted_operand2));
 
             let eval_key = key.make_eval_key();
 
-            print_verbose(format!("{} {:?}", format!("Plain string to compare:").green(), &str_to_compare));
-            let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str_to_compare);
-            print_verbose(format!("{} {:?}", format!("Encrypted comparasion result:").green(), &encrypted_result));
+            let encrypted_result = eval_key.multiply(&encrypted_operand1, &encrypted_operand2);
+            print_verbose(format!("{} {:?}", format!("Encrypted multiplication result:").green(), &encrypted_result));
 
-            let result = key.decrypt_bool(&encrypted_result);
-            print_verbose(format!("{} {:?}", format!("Decrypted comparasion result:").green(), &result));
-            println!("Result of checking equility of encrypted string \"{str_to_be_encrypted}\" and plain string \"{str_to_compare}\": {}", if result {"strings are same".green()} else {"string aren't same".red()});
+            let result = key.decrypt_int(&encrypted_result);
+            print_verbose(format!("{} {:?}", format!("Decrypted multiplication result:").green(), &result));
+            println!("Received result of multiplication of encrypted number {operand1} and encrypted number {operand2}: {}, expected result: {}", result, operand1*operand2);
            
             println!("{}", format!("Done").green());
+        },
+        Multiply => {
+            
+        },
+        Decrypt => {
         }
     }
 }
@@ -77,9 +88,9 @@ fn main() {
 struct MySchema;
 
 impl TFHESchema for MySchema {
-    const MESSAGE_SPACE_SIZE: usize = 5;
-    const LWE_K: usize = 3;
-    const GLWE_N: usize = 1024;
+    const MESSAGE_SPACE_SIZE: usize = 6;
+    const LWE_K: usize = 500;
+    const GLWE_N: usize = 2048;
     const GLWE_K: usize = 1;
     const CT_MODULUS: u64 = u64::MAX;
     const GLWE_Q: usize = 64;
@@ -92,12 +103,9 @@ impl TFHESchema for MySchema {
 }
 
 #[derive(Debug)]
-struct CharCt<S: TFHESchema, P: LWE_CT_Params<S>>(GLWECiphertext<S, P>);
-#[derive(Debug, Clone)]
-struct BoolCt<S: TFHESchema, P: LWE_CT_Params<S>>(GLWECiphertext<S, P>);
+struct IntCt<S: TFHESchema, P: LWE_CT_Params<S>>(GLWECiphertext<S, P>);
 
-#[derive(Debug)]
-struct StringCt<S: TFHESchema, P: LWE_CT_Params<S>>(Vec<CharCt<S, P>>);
+
 
 #[derive(Debug)]
 struct SecretKey<S: TFHESchema, P: LWE_CT_Params<S>>(GLWE_secret_key<S, P>);
@@ -111,20 +119,9 @@ where
         SecretKey(GLWE_secret_key::<S, P>::new_random())
     }
 
-    pub fn encrypt_string(&self, s: &String) -> StringCt<S, P> {
-        let mut v: Vec<CharCt<S, P>> = Vec::with_capacity(s.len());
-        for i in 0..s.len() {
-            let c: u64 = s.chars().nth(i).unwrap() as u64 - 100;
 
-            let enc_c = self.encrypt_char(c);
-
-            v.push(enc_c);
-        }
-        StringCt(v)
-    }
-
-    pub fn encrypt_char(&self, c: u64) -> CharCt<S, P> {
-        CharCt(
+    pub fn encrypt_int(&self, c: u64) -> IntCt<S, P> {
+        IntCt(
             self.0
                 .encrypt(&Polynomial::<{ P::POLINOMIAL_SIZE }>::new_monomial(
                     c << (S::GLWE_Q - S::GLEV_B),
@@ -134,16 +131,10 @@ where
     }
 
     #[allow(dead_code)]
-    pub fn decrypt_char(&self, ct: &CharCt<S, P>) -> u64 {
+    pub fn decrypt_int(&self, ct: &IntCt<S, P>) -> u64 {
         let m = self.0.decrypt(&ct.0);
 
         m[0] >> (S::GLWE_Q - S::GLEV_B)
-    }
-
-    pub fn decrypt_bool(&self, ct: &BoolCt<S, P>) -> bool {
-        let m = self.0.decrypt(&ct.0);
-
-        m[0] >> (S::GLWE_Q - S::GLEV_B) == 1
     }
 
     pub fn make_eval_key(&self) -> EvalKey<S, P, GLWE_Params<S>> {
@@ -159,13 +150,6 @@ where
     }
 }
 
-fn encode_char(c: u64) -> u64 {
-    c - 100
-}
-
-fn decode_char(c: u64) -> u64 {
-    c + 100
-}
 struct EvalKey<S: TFHESchema, PLwe: LWE_CT_Params<S>, PGlwe: LWE_CT_Params<S>>(
     EvaluatingKey<S, PLwe, PGlwe>,
 );
@@ -178,37 +162,19 @@ where
     [(); S::GLEV_B]: Sized,
     [(); S::GLEV_L]: Sized,
 {
-    pub fn is_chars_eq(&self, ct: &CharCt<S, PLwe>, char: u64) -> BoolCt<S, PLwe> {
-        let f = |v: u64| if v == encode_char(char) { 1 } else { 0 };
-        let is_eq = self.0.eval(&ct.0, &f);
-        BoolCt(is_eq)
-    }
-
-    pub fn is_strings_eq(
-        &self,
-        ct: StringCt<S, PLwe>,
-        s: &String,
-    ) -> BoolCt<S, PLwe> {
-        let mut acc: BoolCt<S, PLwe> =
-            self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64);
-        for i in 1..s.len() {
-            acc = self.and(
-                &acc,
-                &self.is_chars_eq(&ct.0[i], s.chars().nth(i).unwrap() as u64),
-            );
-        }
-
-        acc
-    }
-
-    pub fn and(&self, lhs: &BoolCt<S, PLwe>, rhs: &BoolCt<S, PLwe>) -> BoolCt<S, PLwe> {
-        let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(2, 0);
+    pub fn multiply(&self, lhs: &IntCt<S, PLwe>, rhs: &IntCt<S, PLwe>) -> IntCt<S, PLwe> {
+        let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(8, 0);
         let shifted_rhs = &rhs.0 * &shift; 
 
-        let sum = &lhs.0 + &shifted_rhs;
+        let f = |combined_operand:u64| {
+            let rhs = combined_operand & 7;
+            let lhs = (combined_operand & (7<<3)) >> 3;
+            rhs*lhs
+        };
 
-        let f = |v: u64| if v == 3 { 1 } else { 0 };
-        let res = self.0.eval(&sum, &f);
-        BoolCt(res)
+        let sum = &lhs.0 + &shifted_rhs;
+        let is_eq = self.0.eval(&sum, &f);
+        IntCt(is_eq)
     }
+
 }
