@@ -35,3 +35,7 @@ path = "examples/arithmetics/main.rs"
 [[bench]]
 name = "bootstrap"
 harness = false
+
+[[bench]]
+name = "eval"
+harness = false

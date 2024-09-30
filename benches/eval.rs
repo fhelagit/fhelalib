@@ -42,8 +42,15 @@ fn bench_bootstrap(c: &mut Criterion) {
     let encrypted_message: GLWECiphertext<MySchema, LWE_Params<MySchema>> = sk_old.encrypt(&message);
 
     let bsk: BootstrappingKey<MySchema, LWE_Params<MySchema>, GLWE_Params<MySchema>> = sk_new.create_bootstrapping_key(&sk_old);
-    c.bench_function("bootstrap", |b| b.iter(|| {
-        let (_, _): (GLWECiphertext<MySchema, GLWE_Params<MySchema>>, Vec<( String, GLWECiphertext<MySchema, GLWE_Params<MySchema>>)> ) = bsk.bootstrap(&encrypted_message);
+    let extracted_key = sk_new.extract_key::<LWE_Params_after_extraction<MySchema>>();
+    let ksk = sk_old.create_keyswitching_key::<LWE_Params_after_extraction<MySchema>>(&extracted_key);
+    let eval_key = EvaluatingKey::new(bsk, ksk);
+    let f = |v: u64| {
+        if v==1 {1} else {0}
+        // v
+    };
+    c.bench_function("eval", |b| b.iter(|| {
+        let _: GLWECiphertext<MySchema, LWE_Params<MySchema>> = eval_key.eval(&encrypted_message, &f);
     }));
 }
 
