@@ -52,7 +52,8 @@ fn main() {
             command: AppCommand::Multiply { operand1, operand2 },
             ..
         } => {
-            // assert_eq!(str_to_be_encrypted.len(), str_to_compare.len(), "{}", format!("String lengths must match").red());
+            assert!(operand1 >= 0 && operand1<=7, "{}", format!("Both operands sould be not negative integer less then 8").red());
+            assert!(operand2 >= 0 && operand2<=7, "{}", format!("Both operands sould be not negative integer less then 8").red());
             // assert!(str_to_be_encrypted.chars().chain(str_to_compare.chars()).all(|x| x.is_ascii_lowercase()), "{}", format!("String should contain only latin letters in lower case").red() );
 
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
