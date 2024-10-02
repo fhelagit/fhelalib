@@ -105,16 +105,14 @@ where
         for _ in 0..S::GLEV_L {
             dec.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero())
         }
-        
+
         let mut acc: Vec<Polynomial<{ P::POLINOMIAL_SIZE }>> = Vec::with_capacity(P::MASK_SIZE + 1);
         for _ in 0..=P::MASK_SIZE {
             acc.push(Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero())
         }
         // let mut acc: GLWECiphertext<S,P> = GLWECiphertext::from_polynomial_list(from_poly_list::from(zero_data));
 
-
         for glev_number in 0..=P::MASK_SIZE {
-
             decompose_polynomial_assign::<
                 { S::GLWE_Q },
                 { S::GLEV_L },
@@ -129,7 +127,8 @@ where
 
                 for poly_number in 0..=P::MASK_SIZE {
                     // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
-                   acc[poly_number] += &(&dec[glwe_number] * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
+                    acc[poly_number] += &(&dec[glwe_number]
+                        * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
                 }
             }
         }
@@ -137,8 +136,6 @@ where
         GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
     }
 }
-
-
 
 #[cfg(test)]
 proptest! {

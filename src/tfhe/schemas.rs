@@ -6,7 +6,7 @@ use crate::math::polynomial::polynomial::Polynomial;
 use crate::random::random::{
     rnd_u64_gausean, rnd_u64_uniform, rnd_u64_uniform_binary, rnd_u64_uniform_bounded,
 };
-use std::fmt::{Debug};
+use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
 pub trait TFHESchema: Clone
@@ -22,6 +22,7 @@ where
     Self::GLWECTContainerType: Sized,
     Self::GLWECTContainerType: serde::de::DeserializeOwned,
     Self::GLWECTContainerType: from_poly_list,
+    Self::GLWECTContainerType: from_u64_vector,
     // Self::GLWECTContainerType: from_poly_list<1>,
     // Self::GLWECTContainerType: from_poly_list<32>,
     // Self::GLWECTContainerType: from_poly_list<1024>,
@@ -105,6 +106,7 @@ where
     Self::ContainerType: Index<usize, Output = Self::ScalarType>,
     Self::ContainerType: IndexMut<usize, Output = Self::ScalarType>,
     Self::ContainerType: from_poly_list,
+    Self::ContainerType: from_u64_vector,
 
     Self::ScalarType: Clone,
     Self::ScalarType: Sized,
@@ -187,8 +189,8 @@ impl<S: TFHESchema> LWE_CT_Params<S> for GLWE_Params<S> {
     }
 
     fn random_scalar_key() -> Self::ScalarType {
-        // from_u64::from(rnd_u64_uniform_binary())
-        from_u64::from(1)
+        from_u64::from(rnd_u64_uniform_binary())
+        // from_u64::from(1)
     }
 }
 

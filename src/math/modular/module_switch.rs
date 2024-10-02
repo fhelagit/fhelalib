@@ -18,7 +18,7 @@ pub fn rounded_div(dividend: u128, divisor: u128) -> u128 {
 
 pub fn mod_switch(a: u64, old_q: u128, new_q: u128) -> u64 {
     // let nv: u128 = a as u128 * new_q as u128 / old_q as u128;
-    let nv: u128 = rounded_div(a as u128 , rounded_div(old_q as u128, new_q as u128));
+    let nv: u128 = rounded_div(a as u128, rounded_div(old_q as u128, new_q as u128));
     // let mut nv: u64 = a;
     // nv >>= 64 - 11 - 1 + 0;
 

@@ -1,7 +1,7 @@
 #[allow(non_camel_case_types)]
 type ntt_data_size = u64;
-use cached::proc_macro::cached;
 use crate::math::modular::mod_arith::*;
+use cached::proc_macro::cached;
 #[cfg(test)]
 use proptest::prelude::*;
 #[cfg(test)]
@@ -187,7 +187,6 @@ pub fn ct_ntt(
     n: usize,
     q: ntt_data_size,
     w: ntt_data_size,
-
 ) -> Result<(), ()> {
     iter_dit_ntt(regular_form, n, q, w)
     // if n == 2 {
@@ -262,75 +261,74 @@ pub fn ct_ntt(
 }
 
 pub fn iter_dit_ntt(
-        data: &mut Vec<ntt_data_size>,
-        n: usize,
-        q: ntt_data_size,
-        w: ntt_data_size,
-    ) -> Result<(), ()> {
-
+    data: &mut Vec<ntt_data_size>,
+    n: usize,
+    q: ntt_data_size,
+    w: ntt_data_size,
+) -> Result<(), ()> {
     //		xil_printf("CT_ntt 2\n");
     // let mut C: Vec<u64> = Vec::with_capacity(n);
     let mut B: Vec<ntt_data_size> = Vec::with_capacity(n);
-    let n_2 = n>>1;
+    let n_2 = n >> 1;
     for i in 0..n {
         // ntt_form.push(0);
         //ntt_form.push(regular_form[i]);
         B.push(data[i]);
     }
 
-    let mut v = n>>1;
+    let mut v = n >> 1;
     let mut m = 1;
-    let mut d = n>>1;
+    let mut d = n >> 1;
 
-    let mut nsi = if ((v as f64).log2() as u64) % 2 == 0 {true} else {false};
+    let mut nsi = if ((v as f64).log2() as u64) % 2 == 0 {
+        true
+    } else {
+        false
+    };
 
     while m < n {
         if nsi {
             let mut l = 0;
             for k in 0..m {
-                let jf = 2*k*v;
+                let jf = 2 * k * v;
                 let jl = jf + v - 1;
-                let jt = k*v;
+                let jt = k * v;
 
                 let tw = pow(w, jt as u32, q);
 
-                for j in jf..jl+1 {
-                    let temp        = mod_mul(tw, B[j+d], q);
+                for j in jf..jl + 1 {
+                    let temp = mod_mul(tw, B[j + d], q);
 
-                    data[l]     = mod_sum(B[j], temp, q);
-                    data[l+n_2] = mod_sub(B[j], temp, q);
+                    data[l] = mod_sum(B[j], temp, q);
+                    data[l + n_2] = mod_sub(B[j], temp, q);
 
                     l += 1
                 }
             }
             nsi = false
-                
-
         } else {
             let mut l = 0;
-            for k in 0..m{
-                let jf = 2*k*v;
+            for k in 0..m {
+                let jf = 2 * k * v;
                 let jl = jf + v - 1;
-                let jt = k*v;
-    
+                let jt = k * v;
+
                 let tw = pow(w, jt as u32, q);
-    
-                for j in jf..jl+1 {
-                    let temp = mod_mul(tw, data[j+d], q);
-    
-                    B[l]          = mod_sum(data[j], temp, q);
-                    B[l+n_2] = mod_sub(data[j], temp, q);
-    
+
+                for j in jf..jl + 1 {
+                    let temp = mod_mul(tw, data[j + d], q);
+
+                    B[l] = mod_sum(data[j], temp, q);
+                    B[l + n_2] = mod_sub(data[j], temp, q);
+
                     l += 1
                 }
             }
             nsi = true
-            
         }
         v >>= 1;
         m <<= 1;
         d >>= 1;
     }
     Ok(())
-
 }

@@ -92,13 +92,14 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         // let lut_shift = Polynomial::new_monomial(1,  P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::GLEV_B) >> 1));
         // lut = &lut * &lut_shift;
         lut = self.rotate_glwe(
-                &lut,
-                (P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::MESSAGE_SPACE_SIZE) >> 1)) as u64);
+            &lut,
+            (P_glwe::POLINOMIAL_SIZE - ((P_glwe::POLINOMIAL_SIZE >> S::MESSAGE_SPACE_SIZE) >> 1))
+                as u64,
+        );
 
         // lut = self.mul_glwe_poly(
         //             &lut,
         //             &lut_shift);
-
 
         cts.push(("lut initial".to_string(), lut.clone()));
         // println!("bootstrap 3");
@@ -106,7 +107,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         let body_ = mod_switch(
             ct.get_poly_by_index(P_lwe::MASK_SIZE)[0],
             1 << 64,
-            (P_glwe::POLINOMIAL_SIZE << (S::GLEV_B-S::MESSAGE_SPACE_SIZE)) as u128 ,
+            (P_glwe::POLINOMIAL_SIZE << (S::GLEV_B - S::MESSAGE_SPACE_SIZE)) as u128,
         ) % P_glwe::POLINOMIAL_SIZE as u64;
         // println!(
         //     "bootstrap 4: ct.body: {}, switched: {}",
@@ -120,19 +121,24 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         //         P_glwe::POLINOMIAL_SIZE - 1 - body_ as usize,
         //     );
         // lut = &lut * &body;
-       lut = self.rotate_glwe(&lut, P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_);
+        lut = self.rotate_glwe(&lut, P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_);
         // lut = self.mul_glwe_poly(&lut, &body);
         // println!("bootstrap 5");
-        cts.push((format!("lut rotated b = {}", P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_).to_string(), lut.clone()));
-
-        
+        cts.push((
+            format!(
+                "lut rotated b = {}",
+                P_glwe::POLINOMIAL_SIZE as u64 - 1 - body_
+            )
+            .to_string(),
+            lut.clone(),
+        ));
 
         for i in 0..P_lwe::MASK_SIZE {
             let a_i_ = mod_switch(
                 ct.get_poly_by_index(i)[0],
                 1 << 64,
-                (P_glwe::POLINOMIAL_SIZE << (S::GLEV_B-S::MESSAGE_SPACE_SIZE)) as u128,
-            ) % P_glwe::POLINOMIAL_SIZE as u64; 
+                (P_glwe::POLINOMIAL_SIZE << (S::GLEV_B - S::MESSAGE_SPACE_SIZE)) as u128,
+            ) % P_glwe::POLINOMIAL_SIZE as u64;
             //(ct.get_poly_by_index(i)[0] >> (64-7+3)) << 3;//mod_switch(ct.get_poly_by_index(i)[0], 1<<64, P_glwe::POLINOMIAL_SIZE as u128);
             // println!(
             //     "bootstrap 7: ct.a[i]: {}, switched: {}",
@@ -143,23 +149,21 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
             let a_i = Polynomial::<{ P_glwe::POLINOMIAL_SIZE }>::new_monomial(1, a_i_ as usize);
             // println!("bootstrap 6");
             // let lut_rotated = &lut * &a_i;
-           let mut lut_rotated = self.rotate_glwe(&lut, a_i_);
+            let mut lut_rotated = self.rotate_glwe(&lut, a_i_);
             // let mut lut_rotated = self.mul_glwe_poly(&lut, &a_i);
-
-
-            
 
             // cts.push((
             //     format!("lut rotated  a[{i}] = {a_i_}").to_string(),
             //     lut_rotated.clone(),
             // ));
-            
 
             lut = cmux(&self.key[i], &lut_rotated, &lut.clone());
             // println!("bootstrap 7/5: lut[{i}]: {}, cmux: {}", lut,  cmux(&self.key[i], &lut_rotated, &lut.clone()));
-            cts.push((format!("lut after cmux[{i}] = {}", a_i_).to_string(), lut.clone()));
+            cts.push((
+                format!("lut after cmux[{i}] = {}", a_i_).to_string(),
+                lut.clone(),
+            ));
         }
-
 
         // println!("bootstrap 8");
 
@@ -184,11 +188,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         GLWECiphertext::<S, P_glwe>::from_polynomial_list(from_poly_list::from(sums))
     }
 
-    fn rotate_glwe(
-        &self,
-        lhs: &GLWECiphertext<S, P_glwe>,
-        steps: u64,
-    ) -> GLWECiphertext<S, P_glwe>
+    fn rotate_glwe(&self, lhs: &GLWECiphertext<S, P_glwe>, steps: u64) -> GLWECiphertext<S, P_glwe>
     where
         [(); P_glwe::POLINOMIAL_SIZE]: Sized,
     {
@@ -205,7 +205,7 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
     fn rotate_poly(
         &self,
         lhs: &Polynomial<{ P_glwe::POLINOMIAL_SIZE }>,
-        steps: u64
+        steps: u64,
     ) -> Polynomial<{ P_glwe::POLINOMIAL_SIZE }>
     where
         [(); P_glwe::POLINOMIAL_SIZE]: Sized,
@@ -220,10 +220,10 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         //     new_p[i] = lhs[i-(P_glwe::POLINOMIAL_SIZE-steps as usize)] ;
         // }
         for i in 0..steps as usize {
-            new_p[i] = lhs[P_glwe::POLINOMIAL_SIZE-steps as usize+i] ;
+            new_p[i] = lhs[P_glwe::POLINOMIAL_SIZE - steps as usize + i];
         }
         for i in steps as usize..P_glwe::POLINOMIAL_SIZE as usize {
-            new_p[i] = lhs[(i-steps as usize)] ;
+            new_p[i] = lhs[(i - steps as usize)];
         }
         Polynomial::new(new_p)
     }
@@ -264,7 +264,8 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
         assert_eq!(P_lwe::POLINOMIAL_SIZE, 1);
         assert_eq!(P_lwe_old::POLINOMIAL_SIZE, 1);
 
-        let mut dec: Vec<Polynomial<{ P_lwe_old::POLINOMIAL_SIZE }>> = Vec::with_capacity(S::GLEV_L);
+        let mut dec: Vec<Polynomial<{ P_lwe_old::POLINOMIAL_SIZE }>> =
+            Vec::with_capacity(S::GLEV_L);
         for _ in 0..S::GLEV_L {
             dec.push(Polynomial::<{ P_lwe_old::POLINOMIAL_SIZE }>::new_zero())
         }
@@ -292,7 +293,9 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
                 for poly_number in 0..=P_lwe::MASK_SIZE {
                     // println!("mul_ext: 3, get_poly_by_index offset_glev: {}, offset_glwe: {}, poly_number: {}, self[]: {:?}, dec[]: {:?}: ", offset_glev, offset_glwe, poly_number, &self.get_poly_by_index(offset_glev+offset_glwe+poly_number), &dec[glwe_number]);
                     // println!("switch_key 3. offset_glev + offset_glwe + poly_number: {}", offset_glev + offset_glwe + poly_number);
-                    acc[poly_number] += &(&dec[glwe_number].switch_order::<{ P_lwe::POLINOMIAL_SIZE }>() * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
+                    acc[poly_number] += &(&dec[glwe_number]
+                        .switch_order::<{ P_lwe::POLINOMIAL_SIZE }>()
+                        * &self.get_poly_by_index(offset_glev + offset_glwe + poly_number));
                 }
             }
         }

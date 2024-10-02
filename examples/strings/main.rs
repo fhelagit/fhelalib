@@ -1,6 +1,8 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
+use clap::{Parser, Subcommand};
+use colored::Colorize;
 use tfhela::{
     math::polynomial::polynomial::Polynomial,
     tfhe::{
@@ -12,14 +14,12 @@ use tfhela::{
         server_key::server_key::{BootstrappingKey, EvaluatingKey},
     },
 };
-use clap::{Parser, Subcommand};
-use colored::Colorize;
 
 #[derive(Debug, Subcommand)]
 enum AppCommand {
     CheckEquility {
         str_to_be_encrypted: String,
-        str_to_compare: String
+        str_to_compare: String,
     },
 }
 
@@ -32,7 +32,6 @@ struct CliArgs {
 }
 
 fn main() {
-
     let args @ CliArgs { verbose, .. } = CliArgs::parse();
 
     let print_verbose = |s: String| {
@@ -43,31 +42,66 @@ fn main() {
 
     match args {
         CliArgs {
-            command: AppCommand::CheckEquility {str_to_be_encrypted, str_to_compare},
+            command:
+                AppCommand::CheckEquility {
+                    str_to_be_encrypted,
+                    str_to_compare,
+                },
             ..
         } => {
-            
-            assert_eq!(str_to_be_encrypted.len(), str_to_compare.len(), "{}", format!("String lengths must match").red());
-            assert!(str_to_be_encrypted.chars().chain(str_to_compare.chars()).all(|x| x.is_ascii_lowercase()), "{}", format!("String should contain only latin letters in lower case").red() );
+            assert_eq!(
+                str_to_be_encrypted.len(),
+                str_to_compare.len(),
+                "{}",
+                format!("String lengths must match").red()
+            );
+            assert!(
+                str_to_be_encrypted
+                    .chars()
+                    .chain(str_to_compare.chars())
+                    .all(|x| x.is_ascii_lowercase()),
+                "{}",
+                format!("String should contain only latin letters in lower case").red()
+            );
 
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
 
             print_verbose(format!("{} {:?}", format!("Secret key:").green(), &key));
 
-            print_verbose(format!("{} {:?}", format!("Plain string:").green(), &str_to_be_encrypted));
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Plain string:").green(),
+                &str_to_be_encrypted
+            ));
             let encrypted_str = key.encrypt_string(&str_to_be_encrypted);
-            print_verbose(format!("{} {:?}", format!("Encrypted string:").green(), &encrypted_str));
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Encrypted string:").green(),
+                &encrypted_str
+            ));
 
             let eval_key = key.make_eval_key();
 
-            print_verbose(format!("{} {:?}", format!("Plain string to compare:").green(), &str_to_compare));
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Plain string to compare:").green(),
+                &str_to_compare
+            ));
             let encrypted_result = eval_key.is_strings_eq(encrypted_str, &str_to_compare);
-            print_verbose(format!("{} {:?}", format!("Encrypted comparasion result:").green(), &encrypted_result));
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Encrypted comparasion result:").green(),
+                &encrypted_result
+            ));
 
             let result = key.decrypt_bool(&encrypted_result);
-            print_verbose(format!("{} {:?}", format!("Decrypted comparasion result:").green(), &result));
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Decrypted comparasion result:").green(),
+                &result
+            ));
             println!("Result of checking equility of encrypted string \"{str_to_be_encrypted}\" and plain string \"{str_to_compare}\": {}", if result {"strings are same".green()} else {"string aren't same".red()});
-           
+
             println!("{}", format!("Done").green());
         }
     }
@@ -184,13 +218,8 @@ where
         BoolCt(is_eq)
     }
 
-    pub fn is_strings_eq(
-        &self,
-        ct: StringCt<S, PLwe>,
-        s: &String,
-    ) -> BoolCt<S, PLwe> {
-        let mut acc: BoolCt<S, PLwe> =
-            self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64);
+    pub fn is_strings_eq(&self, ct: StringCt<S, PLwe>, s: &String) -> BoolCt<S, PLwe> {
+        let mut acc: BoolCt<S, PLwe> = self.is_chars_eq(&ct.0[0], s.chars().nth(0).unwrap() as u64);
         for i in 1..s.len() {
             acc = self.and(
                 &acc,
@@ -203,7 +232,7 @@ where
 
     pub fn and(&self, lhs: &BoolCt<S, PLwe>, rhs: &BoolCt<S, PLwe>) -> BoolCt<S, PLwe> {
         let shift = Polynomial::<{ PLwe::POLINOMIAL_SIZE }>::new_monomial(2, 0);
-        let shifted_rhs = &rhs.0 * &shift; 
+        let shifted_rhs = &rhs.0 * &shift;
 
         let sum = &lhs.0 + &shifted_rhs;
 

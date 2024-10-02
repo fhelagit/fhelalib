@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-
 use std::ops;
 use std::ops::{Index, IndexMut};
 
@@ -13,13 +12,13 @@ use proptest::prelude::*;
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 
-use crate::math::modular::mod_arith::{mod_sub, mod_sum, mod_mul};
+use crate::math::modular::mod_arith::{mod_mul, mod_sub, mod_sum};
 use crate::math::modular::module_switch::*;
 use crate::math::polynomial::ct_ntt::*;
 
 // use std::marker::PhantomData;
-const Q: usize = 18446744073709550593-1;//18437455399478099969-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
-// const Q: usize = u64::MAX as usize;
+const Q: usize = 18446744073709550593 - 1; //18437455399478099969-1;//u64::MAX as usize;//18446744073709550593-1;//18446744073709550593-1;// 18446744073709547521 - 1 ;//18446744073709551521 - 1 ;//u64::MAX as usize -100;
+                                           // const Q: usize = u64::MAX as usize;
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(test, derive(Arbitrary))]
 pub struct Polynomial<const ORDER: usize>(Vec<u64>);
@@ -62,11 +61,24 @@ impl<const ORDER: usize> Polynomial<ORDER> {
         Polynomial::new(self.0.iter().map(|v| v >> steps).collect())
     }
     pub fn shl(&self, steps: usize) -> Self {
-        Polynomial::new(self.0.iter().map(|v| (((*v as u128) << steps) % (Q as u128 +1)) as u64).collect())
+        Polynomial::new(
+            self.0
+                .iter()
+                .map(|v| (((*v as u128) << steps) % (Q as u128 + 1)) as u64)
+                .collect(),
+        )
     }
 
     pub fn round(&self, divisor: u64) -> Self {
-        Polynomial::new(self.0.iter().map(|v| (((*v as u128 + (divisor>>1) as u128) % (Q as u128 +1)) / divisor as u128) as u64).collect())
+        Polynomial::new(
+            self.0
+                .iter()
+                .map(|v| {
+                    (((*v as u128 + (divisor >> 1) as u128) % (Q as u128 + 1)) / divisor as u128)
+                        as u64
+                })
+                .collect(),
+        )
     }
 
     pub fn rem(&self, divisor: u64) -> Self {
@@ -163,19 +175,18 @@ impl<const ORDER: usize> ops::Add<&Polynomial<ORDER>> for &Polynomial<ORDER> {
         for i in 0..ORDER {
             // sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
             sums[i] = mod_sum(self[i], rhs[i], Q as u64 + 1);
-          // sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
+            // sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
         }
         Polynomial::new(sums)
     }
 }
 
 impl<const ORDER: usize> ops::AddAssign<&Polynomial<ORDER>> for Polynomial<ORDER> {
-
     fn add_assign(&mut self, rhs: &Polynomial<ORDER>) {
         for i in 0..ORDER {
             // sums[i] = self.coeffs()[i].wrapping_add(rhs.coeffs()[i]);
             (*self)[i] = mod_sum(self[i], rhs[i], Q as u64 + 1);
-          // sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
+            // sums[i] = ((self[i] as u128 + rhs[i] as u128) % (Q as u128 + 1)) as u64;
         }
     }
 }
@@ -195,7 +206,6 @@ impl<const ORDER: usize> ops::Sub<&Polynomial<ORDER>> for &Polynomial<ORDER> {
             //     // diffs[i] = ((Q as u128 + self[i] as u128 - rhs[i] as u128) % Q as u128) as u64;
             //     diffs[i] = (Q as u128+1 - (rhs[i] as u128 - self[i] as u128) ) as u64;
             // }
-            
         }
         // println!("sub. lhs: {}, rhs: {}, diff1: {}, diff2: {}", self[0], rhs[0], rhs[0] as u128 - self[0] as u128, (Q as u128+1 - (rhs[0] as u128 - self[0] as u128) ));
         Polynomial::new(diffs)
@@ -297,7 +307,10 @@ impl<const ORDER: usize> ops::Mul<&Polynomial<ORDER>> for &Polynomial<ORDER> {
     fn mul(self, rhs: &Polynomial<ORDER>) -> Polynomial<ORDER> {
         if ORDER == 1 {
             // return Polynomial::new_monomial(self[0].wrapping_mul(rhs[0]), 0);
-            return Polynomial::new_monomial(((self[0] as u128 * rhs[0] as u128) % (Q as u128 + 1)) as u64, 0);
+            return Polynomial::new_monomial(
+                ((self[0] as u128 * rhs[0] as u128) % (Q as u128 + 1)) as u64,
+                0,
+            );
         }
         // polymul_pwc_naive(self, rhs)
         polymul_pwc(self, rhs)
@@ -373,7 +386,6 @@ fn polymul_nwc<const ORDER: usize>(
     let n_inv: u64 = 18437736874454806531;
     let psi: u64 = 3618691915695908984;
     let psi_inv: u64 = 6610778516587902706;
-
 
     // 32
     // let q: u64       = 18446744073709550593;
@@ -577,7 +589,6 @@ fn polymul_pwc<const ORDER: usize>(
     // const n: usize = 256;
     // let n_inv: u64 = 18374686479671622661;
 
-
     // 32
     // let q: u64 = 18446744073709551521;
     // let w: u64 = 2250779155537587393;
@@ -634,16 +645,16 @@ fn polymul_pwc_naive<const ORDER: usize>(
     for i in 0..ORDER {
         for j in 0..ORDER {
             // c[i + j] = c[i + j].wrapping_add(a[i].wrapping_mul(b[j]));
-            c[i + j] = (c[i + j] as u128 + ((a[i] as u128 * b[j] as u128) % (Q as u128 + 1)) % (Q as u128 + 1)) as u64;
+            c[i + j] = (c[i + j] as u128
+                + ((a[i] as u128 * b[j] as u128) % (Q as u128 + 1)) % (Q as u128 + 1))
+                as u64;
         }
     }
 
     let mut d: Vec<u64> = Vec::with_capacity(ORDER);
     for i in 0..ORDER {
         // d.push(c[i].wrapping_add(c[i + ORDER]));
-        d.push(
-            ((c[i] as u128 + c[i + ORDER] as u128) % (Q as u128 + 1)) as u64
-        );
+        d.push(((c[i] as u128 + c[i + ORDER] as u128) % (Q as u128 + 1)) as u64);
     }
 
     Polynomial::new(d)
@@ -788,19 +799,25 @@ pub fn decompose_polynomial_assign<
     p: Polynomial<ORDER>,
     dec_polies: &mut Vec<Polynomial<ORDER>>,
 ) {
-
     for dec_lev in 0..GLEV_L {
         dec_polies.push(Polynomial::<ORDER>::new_zero());
     }
     for i in 0..ORDER {
-        decomp_int_assign::<{ GLWE_Q }, { GLEV_L }, { GLEV_B }, {ORDER}>(p[i], dec_polies, i);
+        decomp_int_assign::<{ GLWE_Q }, { GLEV_L }, { GLEV_B }, { ORDER }>(p[i], dec_polies, i);
     }
 }
 
-fn decomp_int_assign<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize, const ORDER: usize>(n: u64, acc: &mut Vec<Polynomial<ORDER>>, coef_index: usize) {
+fn decomp_int_assign<
+    const GLWE_Q: usize,
+    const GLEV_L: usize,
+    const GLEV_B: usize,
+    const ORDER: usize,
+>(
+    n: u64,
+    acc: &mut Vec<Polynomial<ORDER>>,
+    coef_index: usize,
+) {
     let pos = (GLEV_L * GLEV_B) as u32;
-
-    
 
     let bit = if pos == 64 {
         0
@@ -832,8 +849,6 @@ fn decomp_int_assign<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usi
 
 fn decomp_int<const GLWE_Q: usize, const GLEV_L: usize, const GLEV_B: usize>(n: u64) -> Vec<u64> {
     let pos = (GLEV_L * GLEV_B) as u32;
-
-    
 
     let bit = if pos == 64 {
         0

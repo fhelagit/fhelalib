@@ -146,16 +146,19 @@ where
     }
 }
 
-impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::AddAssign<&GLWECiphertext<S, P>> for GLWECiphertext<S, P>
+impl<S: TFHESchema, P: LWE_CT_Params<S>> ops::AddAssign<&GLWECiphertext<S, P>>
+    for GLWECiphertext<S, P>
 where
     [(); P::POLINOMIAL_SIZE]: Sized,
 {
-    fn add_assign(&mut self, rhs: &GLWECiphertext<S, P>)  {
-    
-        for i in 0..((P::MASK_SIZE + 1)*(P::POLINOMIAL_SIZE)) {
-            (*self)[i] = from_u64::from(mod_sum(from_u64::to(self[i]), from_u64::to(rhs[i]), 18446744073709550593));
+    fn add_assign(&mut self, rhs: &GLWECiphertext<S, P>) {
+        for i in 0..((P::MASK_SIZE + 1) * (P::POLINOMIAL_SIZE)) {
+            (*self)[i] = from_u64::from(mod_sum(
+                from_u64::to(self[i]),
+                from_u64::to(rhs[i]),
+                18446744073709550593,
+            ));
         }
-
     }
 }
 

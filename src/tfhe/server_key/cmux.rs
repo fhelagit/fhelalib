@@ -21,15 +21,11 @@ where
     mul
 }
 
-
 pub fn cmux_<S: TFHESchema, P: LWE_CT_Params<S>>(
     cond: &GGSWCiphertext<S, P>,
     if_true: &GLWECiphertext<S, P>,
     if_false: &GLWECiphertext<S, P>,
-) -> (
-    GLWECiphertext<S, P>,
-    Vec<(String, GLWECiphertext<S, P>)>,
-)
+) -> (GLWECiphertext<S, P>, Vec<(String, GLWECiphertext<S, P>)>)
 where
     [(); P::POLINOMIAL_SIZE]: Sized,
     [(); S::GLEV_B]: Sized,

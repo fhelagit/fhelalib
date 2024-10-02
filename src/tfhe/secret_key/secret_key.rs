@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 
-use crate::math::polynomial::polynomial::Polynomial;
 use crate::math::modular::module_switch::mod_switch;
+use crate::math::polynomial::polynomial::Polynomial;
 use crate::tfhe::ggsw::ggsw::GGSWCiphertext;
 use crate::tfhe::glwe::GLWECiphertext;
 use crate::tfhe::schemas::{
@@ -11,7 +11,6 @@ use crate::tfhe::schemas::{
 use crate::tfhe::server_key::cmux::{cmux, cmux_};
 use crate::tfhe::server_key::extract_sample::extract_sample;
 use crate::tfhe::server_key::server_key::{BootstrappingKey, EvaluatingKey, KeyswitchingKey};
-
 
 #[cfg(test)]
 use proptest::prelude::*;
@@ -28,9 +27,9 @@ where
         for _ in 0..P::MASK_SIZE {
             let mut p = Polynomial::<{ P::POLINOMIAL_SIZE }>::new_zero();
             for elem_number in 0..P::POLINOMIAL_SIZE {
-                p[elem_number] = from_u64::to(0);//P::random_scalar_key());
+                p[elem_number] = from_u64::to(P::random_scalar_key());
             }
-            p[0] = from_u64::to(1);
+            // p[0] = from_u64::to(1);
             d.push(p);
         }
         GLWE_secret_key::from_scalar_vector(from_poly_list::from(d))
@@ -39,6 +38,10 @@ where
     // #[cfg(test)]
     pub fn from_scalar_vector(data: P::SecretKeyContainerType) -> Self {
         GLWE_secret_key(data)
+    }
+
+    pub fn to_u64_vector(&self) -> Vec<u64> {
+        from_u64_vector::to(self.0.clone())
     }
 
     pub fn get_poly_by_index(&self, ind: usize) -> Polynomial<{ P::POLINOMIAL_SIZE }> {
@@ -303,7 +306,7 @@ proptest! {
 
 
 
-        
+
         let decrypted_diff = sk.decrypt(&diff).round(mod_switch(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B), 1<<64, 18446744073709547521 as u128)).rem(1<<TFHE_test_small_u64::GLEV_B);
         // println!("pt_glwe_ct_sub 3");
         let expected_diff = (&a - &b).rem(1<<TFHE_test_small_u64::GLEV_B);
@@ -384,7 +387,7 @@ proptest! {
 
 
         let decrypted_product = sk.decrypt(&encrypted_product);//mod_switch(sk.decrypt(&encrypted_product), 18446744073709547521, 1<<64);
-        
+
         if decrypted_product.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)) != expected_product {
             println!("\n");
             println!("pt_ggsw_mul_external_expected.decrypted_product: {} ", &decrypted_product.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)));
@@ -396,7 +399,7 @@ proptest! {
             println!("pt_ggsw_mul_external_expected.encrypted_product: {} ", &encrypted_product);
             println!("pt_ggsw_mul_external_expected.sk: {:?} ", &sk);
         }
-       
+
         prop_assert_eq!(decrypted_product.round(1<<(TFHE_test_small_u64::GLWE_Q-TFHE_test_small_u64::GLEV_B)), expected_product);
         // assert_eq!(1,2)
 
@@ -568,7 +571,7 @@ proptest! {
             println!("pt_ggsw_mul_external_expected.expected_cmux: {} ", &expected);
 
             // assert_eq!(1,2)
-            
+
             prop_assert_eq!(decrypted, expected);
         }
 
