@@ -12,9 +12,16 @@ Since this library is in very begining of it's development some test cases can f
 
 ## Examples
 Currently we have one example which implements string comparison.
-To run example:
+To run string comparation example:
 ```
 > cargo run --release --example strings -- --verbose check-equility STRING_TO_BE_ENCRYPTED STRING_TO_COMPARED
+```
+
+To run multiplication example:
+```
+> cargo run --release --example arithmetics multiply OPERAND1 OPERAND2
+// to check received ciphertextes
+> cargo run --release --example arithmetics decrypt FILE_NAME
 ```
 
 ## Perfomance
