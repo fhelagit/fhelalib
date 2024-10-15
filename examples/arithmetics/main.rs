@@ -218,6 +218,11 @@ fn main() {
                 format!("Encrypted multiplication result:").green(),
                 encrypted_result.show()
             ));
+            print_verbose(format!(
+                "{} {}",
+                format!("Encrypted operand 2 stored in file:").green(),
+                o2_fn
+            ));
             save_ct(result_fn, &encrypted_result);
         }
         CliArgs {
@@ -225,7 +230,6 @@ fn main() {
             ..
         } => {
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
-            print_verbose(format!("Load secret key from file: {} ...", key_fn));
             save_key(key_fn, &key);
             print_verbose(format!(
                 "{} {}",
