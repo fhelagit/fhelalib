@@ -22,12 +22,18 @@ const o1_fn: &str = "o1.ct";
 const o2_fn: &str = "o2.ct";
 const result_fn: &str = "result.ct";
 const key_fn: &str = "key.sk";
+const eval_key_fn: &str = "eval_key.ek";
 
 #[derive(Debug, Subcommand)]
 enum AppCommand {
     Multiply { operand1: u8, operand2: u8 },
     //Multiply,
     Decrypt { filename: String },
+    MakeSecretKey,
+    MakeEvalKey,
+    Encrypt1 { operand: u8},
+    Encrypt2 { operand: u8},
+    Mult
 }
 
 #[derive(Parser)]
@@ -52,8 +58,8 @@ fn main() {
             command: AppCommand::Multiply { operand1, operand2 },
             ..
         } => {
-            assert!(operand1 >= 0 && operand1<=7, "{}", format!("Both operands sould be not negative integer less then 8").red());
-            assert!(operand2 >= 0 && operand2<=7, "{}", format!("Both operands sould be not negative integer less then 8").red());
+            assert!(operand1 >= 0 && operand1<=7, "{}", format!("Both operands should be not negative integer less then 8").red());
+            assert!(operand2 >= 0 && operand2<=7, "{}", format!("Both operands should be not negative integer less then 8").red());
             // assert!(str_to_be_encrypted.chars().chain(str_to_compare.chars()).all(|x| x.is_ascii_lowercase()), "{}", format!("String should contain only latin letters in lower case").red() );
 
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
@@ -153,6 +159,100 @@ fn main() {
             let decrypted = key.decrypt_int(&encrypted);
             println!("Decrypt ciphertext stored in \"{filename}\" using secret key stored in \"{key_fn}\"");
             println!("Corresponding plain value is: {}", decrypted);
+        }
+        CliArgs {
+            command: AppCommand::Encrypt1 { operand },
+            ..
+        } => {
+            assert!(operand >= 0 && operand<=7, "{}", format!("Both operands should be not negative integer less then 8").red());
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = load_key(key_fn).unwrap();
+            print_verbose(format!("Load secret key from file: {} ...", key_fn));
+            let encrypted_operand = key.encrypt_int(operand as u64);
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Encrypted operand 1:").green(),
+                encrypted_operand.show()
+            ));
+            print_verbose(format!(
+                "{} {}",
+                format!("Encrypted operand 1 stored in file:").green(),
+                o1_fn
+            ));
+            save_ct(&o1_fn, &encrypted_operand);
+        }
+        CliArgs {
+            command: AppCommand::Encrypt2 { operand },
+            ..
+        } => {
+            assert!(operand >= 0 && operand<=7, "{}", format!("Both operands should be not negative integer less then 8").red());
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = load_key(key_fn).unwrap();
+            print_verbose(format!("Load secret key from file: {} ...", key_fn));
+            let encrypted_operand = key.encrypt_int(operand as u64);
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Encrypted operand 2:").green(),
+                encrypted_operand.show()
+            ));
+            print_verbose(format!(
+                "{} {}",
+                format!("Encrypted operand 2 stored in file:").green(),
+                o2_fn
+            ));
+            save_ct(&o2_fn, &encrypted_operand);
+        }
+        CliArgs {
+            command: AppCommand::Mult,
+            ..
+        } => {
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = load_key(key_fn).unwrap();
+            let eval_key = key.make_eval_key();
+            let encrypted_operand1: IntCt<MySchema, LWE_Params<MySchema>> =
+                load_ct(o1_fn).unwrap();
+            let encrypted_operand2: IntCt<MySchema, LWE_Params<MySchema>> =
+                load_ct(o2_fn).unwrap();
+            let encrypted_result = eval_key.multiply(&encrypted_operand1, &encrypted_operand2);
+            print_verbose(format!(
+                "{} {:?}",
+                format!("Encrypted multiplication result:").green(),
+                encrypted_result.show()
+            ));
+            save_ct(result_fn, &encrypted_result);
+        }
+        CliArgs {
+            command: AppCommand::MakeSecretKey,
+            ..
+        } => {
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
+            print_verbose(format!("Load secret key from file: {} ...", key_fn));
+            print_verbose(format!("Create evaluation key  ..."));
+            save_key(key_fn, &key);
+            print_verbose(format!(
+                "{} {}",
+                format!("Secret key: ").green(),
+                "********"
+            ));
+            print_verbose(format!(
+                "{} {}",
+                format!("Secret key stored in file:").green(),
+                key_fn
+            ));
+        }
+        CliArgs {
+            command: AppCommand::MakeEvalKey,
+            ..
+        } => {
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
+            print_verbose(format!("Load secret key from file: {} ...", key_fn));
+            print_verbose(format!("Create evaluation key  ..."));
+            let key: SecretKey<MySchema, LWE_Params<MySchema>> = load_key(key_fn).unwrap();
+            let eval_key = key.make_eval_key();
+            save_key(key_fn, &key);
+
+            print_verbose(format!(
+                "{} {}",
+                format!("Secret key stored in file:").green(),
+                key_fn
+            ));
         }
     }
 }
@@ -310,6 +410,25 @@ where
     }
     Ok(())
 }
+
+// pub fn save_eval_key<S: TFHESchema, PLwe: LWE_CT_Params<S>, PGlwe: LWE_CT_Params<S>>(
+//     filename: &str,
+//     key: &EvalKey<S, PLwe, PGlwe>,
+// ) -> std::io::Result<()>
+// where
+//     [(); PLwe::MASK_SIZE
+//         * (PGlwe::MASK_SIZE + 1) * PGlwe::POLINOMIAL_SIZE 
+//         * PGlwe::GLEV_L
+//         * (PGlwe::MASK_SIZE + 1) 
+//      + (PLwe::MASK_SIZE + 1) * PLwe::GLEV_L * (PGlwe::MASK_SIZE) * PLwe::POLINOMIAL_SIZE ]: Sized,
+// {
+//     let mut file = File::create(filename)?;
+//     for i in 0..P::MASK_SIZE * P::POLINOMIAL_SIZE {
+//         file.write_all(&from_u64::to(key.0.to_u64_vector()[i]).to_le_bytes())
+//             .unwrap();
+//     }
+//     Ok(())
+// }
 
 pub fn load_key<S: TFHESchema, P: LWE_CT_Params<S>>(
     filename: &str,

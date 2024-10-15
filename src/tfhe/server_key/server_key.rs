@@ -9,7 +9,7 @@ use crate::{
         ggsw::ggsw::GGSWCiphertext,
         glwe::GLWECiphertext,
         schemas::{
-            from_poly_list, from_u64, LWE_CT_Params, LWE_Params_after_extraction, TFHESchema,
+            from_poly_list, from_u64, from_u64_vector, LWE_CT_Params, LWE_Params_after_extraction, TFHESchema
         },
         server_key::{cmux::cmux, extract_sample::extract_sample},
     },
@@ -227,6 +227,21 @@ impl<S: TFHESchema, P_lwe: LWE_CT_Params<S>, P_glwe: LWE_CT_Params<S>>
         }
         Polynomial::new(new_p)
     }
+
+    // pub fn from_scalar_vector(data: P_lwe::ContainerType) -> Self {
+    //     BootstrappingKey {
+    //         key: data,
+    //         phantom: PhantomData,
+    //     }
+    // }
+
+    // pub fn to_u64_vector(&self) -> Vec<u64> {
+    //     let mut acc: Vec<u64> = Vec::new();
+    //     for i in self.key {
+    //         acc.append(&mut i.to_u64_vector());
+    //     }
+    //     from_u64_vector::to(self.key.clone())
+    // }
 }
 pub struct KeyswitchingKey<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>> {
     pub key: P_lwe::ContainerType,
@@ -312,6 +327,18 @@ impl<S: TFHESchema, P_lwe_old: LWE_CT_Params<S>, P_lwe: LWE_CT_Params<S>>
         );
         &GLWECiphertext::from_polynomial_list(from_poly_list::from(b_ct))
             - &GLWECiphertext::from_polynomial_list(from_poly_list::from(acc))
+    }
+
+    pub fn from_scalar_vector(data: P_lwe::ContainerType) -> Self {
+        KeyswitchingKey {
+            key: data,
+            phantom1: PhantomData,
+            phantom2: PhantomData,
+        }
+    }
+
+    pub fn to_u64_vector(&self) -> Vec<u64> {
+        from_u64_vector::to(self.key.clone())
     }
 }
 

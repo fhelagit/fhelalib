@@ -38,6 +38,14 @@ impl<S: TFHESchema, P: LWE_CT_Params<S>> GGSWCiphertext<S, P> {
         }
         v
     }
+
+    pub fn from_scalar_vector(data: P::ContainerType) -> Self {
+        GGSWCiphertext(data)
+    }
+
+    // pub fn to_u64_vector(&self) -> Vec<u64> {
+    //     from_u64_vector::to(self.0.clone())
+    // }
 }
 
 impl<S: TFHESchema, P: LWE_CT_Params<S>> Display for GGSWCiphertext<S, P> {
