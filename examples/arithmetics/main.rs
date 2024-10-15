@@ -205,6 +205,8 @@ fn main() {
             ..
         } => {
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = load_key(key_fn).unwrap();
+            print_verbose(format!("Load secret key from file: {} ...", key_fn));
+            print_verbose(format!("Create evaluation key  ..."));
             let eval_key = key.make_eval_key();
             let encrypted_operand1: IntCt<MySchema, LWE_Params<MySchema>> =
                 load_ct(o1_fn).unwrap();
@@ -224,7 +226,6 @@ fn main() {
         } => {
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = SecretKey::new();
             print_verbose(format!("Load secret key from file: {} ...", key_fn));
-            print_verbose(format!("Create evaluation key  ..."));
             save_key(key_fn, &key);
             print_verbose(format!(
                 "{} {}",
@@ -248,11 +249,7 @@ fn main() {
             let eval_key = key.make_eval_key();
             save_key(key_fn, &key);
 
-            print_verbose(format!(
-                "{} {}",
-                format!("Secret key stored in file:").green(),
-                key_fn
-            ));
+
         }
     }
 }
