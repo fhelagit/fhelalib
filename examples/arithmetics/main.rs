@@ -206,7 +206,8 @@ fn main() {
         } => {
             let key: SecretKey<MySchema, LWE_Params<MySchema>> = load_key(key_fn).unwrap();
             print_verbose(format!("Load secret key from file: {} ...", key_fn));
-            print_verbose(format!("Create evaluation key  ..."));
+            print_verbose(format!("Create evaluation key ..."));
+            print_verbose(format!("Multiplying ..."));
             let eval_key = key.make_eval_key();
             let encrypted_operand1: IntCt<MySchema, LWE_Params<MySchema>> =
                 load_ct(o1_fn).unwrap();
