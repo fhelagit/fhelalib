@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+#![allow(non_camel_case_types)]
+
 use crate::{
     math::{
         modular::module_switch::mod_switch,
